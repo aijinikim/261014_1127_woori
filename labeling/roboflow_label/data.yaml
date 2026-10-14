@@ -1,0 +1,13 @@
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+
+nc: 1
+names: ['car']
+
+roboflow:
+  workspace: aia-15ut9
+  project: wori-8pjvz
+  version: 1
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/aia-15ut9/wori-8pjvz/dataset/1
