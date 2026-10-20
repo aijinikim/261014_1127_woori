@@ -21,4 +21,10 @@ __pycache__/
 datasets/
 *.npy
 # 개인 연습 파일
+.env
 ___*
+# API 키 파일
+groq_api_key.txt
+hugging.txt
+# 수강생 개별 저장소(별도 git)
+261020_7_groq_api/demo/

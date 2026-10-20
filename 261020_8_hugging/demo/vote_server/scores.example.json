@@ -1,0 +1,18 @@
+{
+  "홍길동": {
+    "repo": "https://github.com/hong-gildong/261020_bucheon_huggingface_hgd",
+    "summary": "키워드로 만드는 4컷 AI 동화",
+    "items": {
+      "model":        { "score": 5, "note": "LLM + FLUX 조합, README에 선택 이유 명시" },
+      "function":     { "score": 6, "note": "빈 입력 처리 O, API 실패 처리 없음" },
+      "creativity":   { "score": 5, "note": "Gradio UI, 대상 사용자가 분명함" },
+      "readme":       { "score": 4, "note": "실행 화면 캡처 없음" },
+      "requirements": { "score": 3, "note": "" },
+      "env":          { "score": 3, "note": ".env.example · .gitignore 모두 있음" }
+    },
+    "penalty": 0,
+    "reason": "핵심 흐름이 완결되어 있고 문서가 충실함. 예외 처리 보완 필요.",
+    "instructor": 4
+  },
+  "김철수": { "ai": 18.5, "instructor": 3 }
+}

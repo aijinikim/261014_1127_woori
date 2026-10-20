@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>경진대회 결과</title>
+<link rel="stylesheet" href="/static/style.css">
+<style>
+  :root {
+    --s-vote: #3987e5;   /* 투표 — categorical slot 1 (dark) */
+    --s-ai: #d95926;     /* AI   — slot 2 */
+    --s-inst: #199e70;   /* 대진 — slot 3 */
+    --track: #232734;
+    --dur: 1600ms;
+  }
+  .box { max-width: 980px; margin: 24px auto; padding: 0 16px 40px; }
+  h1 { text-align: center; margin: 0 0 4px; font-size: clamp(24px, 4vw, 34px); }
+  .rule { text-align: center; color: var(--muted); margin: 0 0 14px; font-size: 14px; }
+  .stats { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 6px; }
+  .stats .bar { flex: 1 1 200px; height: 10px; }
+  .stats b { font-variant-numeric: tabular-nums; }
+  .wait { color: var(--muted); font-size: 13px; margin: 0 0 14px; }
+  .toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; margin-right: auto; font-size: 14px; color: var(--muted); }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .legend i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+
+  /* 차트 */
+  .chart { display: flex; flex-direction: column; gap: 6px; }
+  .row {
+    display: grid; grid-template-columns: 44px 150px 1fr 64px; gap: 10px; align-items: center;
+    padding: 8px 10px; border-radius: 10px; cursor: pointer; border: 1px solid transparent;
+  }
+  .row:hover, .row:focus-visible { background: var(--panel); border-color: var(--line); outline: none; }
+  .row.me { border-color: var(--accent); background: #ffcc3310; }
+  .rk { text-align: center; font-size: 18px; font-weight: 800; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .rk.medal { font-size: 24px; }
+  .who { min-width: 0; }
+  .who b { display: block; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .who small { display: block; color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .track { position: relative; height: 22px; background: var(--track); border-radius: 0 4px 4px 0; display: flex; overflow: hidden; }
+  .seg { height: 100%; width: 0; transition: width var(--dur) cubic-bezier(.22,.8,.26,1); box-shadow: inset -2px 0 0 var(--bg); }
+  .seg.v { background: var(--s-vote); } .seg.a { background: var(--s-ai); } .seg.s { background: var(--s-inst); }
+  .seg.end { border-radius: 0 4px 4px 0; box-shadow: none; }
+  .tot { text-align: right; font-size: 20px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .row.top1 .tot { color: var(--accent); }
+  @media (max-width: 620px) {
+    .row { grid-template-columns: 34px 1fr 54px; grid-template-areas: "rk who tot" "rk track track"; row-gap: 6px; }
+    .rk { grid-area: rk; } .who { grid-area: who; } .tot { grid-area: tot; } .track { grid-area: track; }
+  }
+
+  /* 표 보기 */
+  .table-wrap { overflow-x: auto; }
+
+  /* 툴팁 */
+  .tip { position: fixed; pointer-events: none; z-index: 60; background: #2a2f3d; border: 1px solid var(--line); border-radius: 8px;
+         padding: 6px 10px; font-size: 13px; box-shadow: 0 6px 20px #0008; white-space: nowrap; display: none; }
+
+  /* 상세 모달 */
+  .modal { position: fixed; inset: 0; background: #000a; display: none; align-items: flex-start; justify-content: center; z-index: 70; padding: 32px 16px; overflow-y: auto; }
+  .modal.open { display: flex; }
+  .sheet { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; width: 100%; max-width: 620px; padding: 20px; position: relative; animation: rise .35s ease both; }
+  @keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+  .sheet .x { position: absolute; top: 12px; right: 12px; }
+  .sheet h2 { margin: 0; font-size: 22px; }
+  .sheet .sum { color: var(--muted); margin: 4px 0 0; }
+  .hero { display: flex; align-items: baseline; gap: 10px; margin: 14px 0 6px; }
+  .hero .n { font-size: 52px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1; }
+  .hero .of { color: var(--muted); }
+  .hero .rkb { margin-left: auto; font-size: 18px; font-weight: 700; }
+  .sec { margin-top: 18px; }
+  .sec h3 { margin: 0 0 8px; font-size: 15px; display: flex; align-items: center; gap: 8px; }
+  .sec h3 i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+  .sec h3 .pts { margin-left: auto; font-variant-numeric: tabular-nums; }
+  .item { display: grid; grid-template-columns: 130px 1fr 52px; gap: 10px; align-items: center; margin: 6px 0; font-size: 14px; }
+  .item .mini { height: 10px; background: var(--track); border-radius: 0 4px 4px 0; overflow: hidden; }
+  .item .mini i { display: block; height: 100%; width: 0; border-radius: 0 4px 4px 0; transition: width 900ms cubic-bezier(.22,.8,.26,1); }
+  .item .val { text-align: right; font-variant-numeric: tabular-nums; }
+  .item .note { grid-column: 2 / -1; color: var(--muted); font-size: 12px; margin-top: -4px; }
+  .reason { background: var(--panel2); border-radius: 10px; padding: 10px 12px; color: var(--text); font-size: 14px; margin-top: 10px; white-space: pre-wrap; }
+  .pen { color: var(--bad); }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div class="box">
+  <h1>🏆 HuggingFace 경진대회 결과</h1>
+  <p class="rule">총점 100 = 수강생 투표 65 + AI 루브릭 30 + 대진 5 · 이름을 누르면 세부 점수를 볼 수 있어요</p>
+
+  <div class="stats">
+    <span>투표 <b id="voted">0</b> / <b id="total">0</b>명</span>
+    <div class="bar"><i id="progress"></i></div>
+  </div>
+  <p class="wait" id="wait"></p>
+
+  <div class="toolbar">
+    <div class="legend">
+      <span><i style="background:var(--s-vote)"></i>투표 (65)</span>
+      <span><i style="background:var(--s-ai)"></i>AI (30)</span>
+      <span><i style="background:var(--s-inst)"></i>대진 (5)</span>
+    </div>
+    <button id="replay">▶ 다시 재생</button>
+    <button id="viewBtn">표로 보기</button>
+  </div>
+
+  <div class="chart" id="chart" role="list"></div>
+  <div class="table-wrap hidden" id="tableView">
+    <table>
+      <thead><tr><th>순위</th><th>이름</th><th class="num">득표</th><th class="num">투표</th><th class="num">AI</th><th class="num">대진</th><th class="num">총점</th></tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+  <p class="wait" id="scoreNote" style="margin-top:12px"></p>
+  <p style="text-align:center;margin-top:18px"><a class="badge" href="/">← 투표 화면</a> <a class="badge" href="/guide?doc=rubric" target="_blank">루브릭 보기</a></p>
+</div>
+
+<div class="tip" id="tip"></div>
+<div class="modal" id="modal" role="dialog" aria-modal="true">
+  <div class="sheet" id="sheet"></div>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const MEDAL = ["🥇", "🥈", "🥉"];
+const ME = new URLSearchParams(location.search).get("me");
+let data = null;
+let rowsEl = new Map();   // name → {el, segs, tot, rk, who}
+let firstPlay = true;
+
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+const fmt = (n) => (Math.round(n * 10) / 10).toString();
+
+function countUp(node, to, dur, delay) {
+  const from = 0, start = performance.now() + delay;
+  const step = (t) => {
+    const p = Math.min(1, Math.max(0, (t - start) / dur));
+    const e = 1 - Math.pow(1 - p, 3);
+    node.textContent = fmt(from + (to - from) * e);
+    if (p < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+
+function rankLabel(r) { return r.rank <= 3 && r.total > 0 ? MEDAL[r.rank - 1] : r.rank; }
+
+function buildRow(r) {
+  const row = el("div", "row"); row.tabIndex = 0; row.setAttribute("role", "listitem");
+  const rk = el("div", "rk");
+  const who = el("div", "who"); const b = el("b"); const sm = el("small"); who.append(b, sm);
+  const track = el("div", "track");
+  const segs = { v: el("i", "seg v"), a: el("i", "seg a"), s: el("i", "seg s") };
+  track.append(segs.v, segs.a, segs.s);
+  const tot = el("div", "tot", "0");
+  row.append(rk, who, track, tot);
+  row.onclick = () => openDetail(row.dataset.name);
+  row.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openDetail(row.dataset.name); } };
+  const parts = [["v", "투표", (r) => `${fmt(r.vote_score)} / 65 · ${r.votes}표`], ["a", "AI", (r) => `${fmt(r.ai)} / 30`], ["s", "대진", (r) => `${fmt(r.instructor)} / 5`]];
+  for (const [k, label, txt] of parts) {
+    segs[k].onmousemove = (e) => showTip(e, `${row.dataset.name} · ${label} ${txt(rowData(row.dataset.name))}`);
+    segs[k].onmouseleave = hideTip;
+  }
+  return { el: row, segs, tot, rk, b, sm };
+}
+
+function rowData(name) { return data.rows.find(r => r.name === name); }
+
+function applyRow(o, r, animate, delay) {
+  o.el.dataset.name = r.name;
+  o.el.className = "row" + (r.rank === 1 && r.total > 0 ? " top1" : "") + (ME && r.name === ME ? " me" : "");
+  o.rk.textContent = rankLabel(r); o.rk.className = "rk" + (r.rank <= 3 && r.total > 0 ? " medal" : "");
+  o.b.textContent = r.name;
+  o.sm.textContent = r.summary || (r.votes ? `${r.votes}표` : "");
+  const w = { v: r.vote_score, a: r.ai, s: r.instructor };       // 0~100 척도 → %
+  const last = ["s", "a", "v"].find(k => w[k] > 0);
+  for (const k of ["v", "a", "s"]) {
+    o.segs[k].classList.toggle("end", k === last);
+    o.segs[k].style.transitionDelay = animate ? delay + "ms" : "0ms";
+    o.segs[k].style.width = w[k] + "%";
+  }
+  o.el.setAttribute("aria-label", `${r.rank}위 ${r.name} 총점 ${fmt(r.total)}점`);
+  if (animate) countUp(o.tot, r.total, 1600, delay);
+  else o.tot.textContent = fmt(r.total);
+}
+
+function render(animate) {
+  const chart = $("chart");
+  const rows = data.rows;
+  // 행 생성/재정렬
+  for (const r of rows) if (!rowsEl.has(r.name)) rowsEl.set(r.name, buildRow(r));
+  for (const name of [...rowsEl.keys()]) if (!rows.some(r => r.name === name)) { rowsEl.get(name).el.remove(); rowsEl.delete(name); }
+  rows.forEach(r => chart.appendChild(rowsEl.get(r.name).el));
+
+  if (animate) {
+    rows.forEach(r => { const o = rowsEl.get(r.name); for (const k in o.segs) { o.segs[k].style.transitionDelay = "0ms"; o.segs[k].style.width = "0"; } o.tot.textContent = "0"; });
+    void chart.offsetWidth;  // 0에서 다시 시작
+  }
+  const n = rows.length;
+  rows.forEach((r, i) => applyRow(rowsEl.get(r.name), r, animate, animate ? (n - 1 - i) * 110 : 0));  // 아래 순위부터 차오름
+
+  // 표 보기
+  const tb = $("tbody"); tb.innerHTML = "";
+  for (const r of rows) {
+    const tr = el("tr");
+    [rankLabel(r), r.name, r.votes, fmt(r.vote_score), fmt(r.ai), fmt(r.instructor), fmt(r.total)].forEach((v, i) => tr.append(el("td", i >= 2 ? "num" : "", v)));
+    tr.onclick = () => openDetail(r.name); tr.style.cursor = "pointer";
+    tb.append(tr);
+  }
+}
+
+function showTip(e, text) { const t = $("tip"); t.textContent = text; t.style.display = "block"; t.style.left = Math.min(e.clientX + 14, innerWidth - t.offsetWidth - 8) + "px"; t.style.top = (e.clientY + 14) + "px"; }
+function hideTip() { $("tip").style.display = "none"; }
+
+function openDetail(name) {
+  const r = rowData(name); if (!r) return;
+  hideTip();
+  const sh = $("sheet"); sh.innerHTML = "";
+  const x = el("button", "x", "✕"); x.onclick = closeDetail; x.setAttribute("aria-label", "닫기");
+  const h = el("h2", "", r.name);
+  sh.append(x, h);
+  if (r.summary) sh.append(el("p", "sum", r.summary));
+  if (r.repo) { const a = el("a", "", r.repo.replace("https://github.com/", "")); a.href = r.repo; a.target = "_blank"; a.rel = "noopener"; sh.append(a); }
+
+  const hero = el("div", "hero");
+  const num = el("span", "n", "0"); hero.append(num, el("span", "of", "/ 100점"), el("span", "rkb", `${rankLabel(r)}${typeof rankLabel(r) === "number" ? "위" : ""} · ${data.rows.length}명 중`));
+  sh.append(hero);
+  // 총점 구성 막대
+  const stack = el("div", "track"); stack.style.height = "16px";
+  const sv = el("i", "seg v"), sa = el("i", "seg a"), ss = el("i", "seg s"); stack.append(sv, sa, ss); sh.append(stack);
+
+  const bars = [];
+  const section = (color, title, pts, max) => {
+    const s = el("div", "sec"); const h3 = el("h3"); const dot = el("i"); dot.style.background = color;
+    h3.append(dot, el("span", "", title), el("span", "pts", `${fmt(pts)} / ${max}`)); s.append(h3); sh.append(s); return s;
+  };
+  const item = (parent, label, score, max, color, note) => {
+    const it = el("div", "item"); const mini = el("div", "mini"); const fill = el("i"); fill.style.background = color; mini.append(fill);
+    it.append(el("span", "", label), mini, el("span", "val", score == null ? "–" : `${fmt(score)}/${max}`));
+    if (note) it.append(el("span", "note", note));
+    parent.append(it); bars.push([fill, score == null ? 0 : score / max * 100]);
+  };
+
+  const sv1 = section("var(--s-vote)", "수강생 투표", r.vote_score, 65);
+  item(sv1, `득표 ${r.votes}표`, r.vote_score, 65, "var(--s-vote)", data.max_votes ? `최다 득표 ${data.max_votes}표 기준 비례 환산 (${r.votes} ÷ ${data.max_votes} × 65)` : "아직 투표 없음");
+
+  const sa1 = section("var(--s-ai)", "AI 루브릭", r.ai, 30);
+  const hasItems = r.items.some(i => i.score != null);
+  if (hasItems) {
+    for (const i of r.items) item(sa1, i.label, i.score, i.max, "var(--s-ai)", i.note || i.desc);
+    if (r.penalty) { const p = el("div", "item"); p.append(el("span", "pen", "감점"), el("span", "muted", "레포명 규칙 위반 등"), el("span", "val pen", fmt(r.penalty))); sa1.append(p); }
+  } else {
+    sa1.append(el("p", "wait", r.scored ? `총점만 입력됨 (${fmt(r.ai)}점) — 항목별 점수 없음` : "AI 채점 결과가 아직 반영되지 않았습니다."));
+  }
+  if (r.reason) sa1.append(el("div", "reason", r.reason));
+
+  const ss1 = section("var(--s-inst)", "대진(강사) 평가", r.instructor, 5);
+  item(ss1, "대진 점수", r.instructor, 5, "var(--s-inst)");
+
+  $("modal").classList.add("open");
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    const last = r.instructor > 0 ? ss : r.ai > 0 ? sa : sv; last.classList.add("end");
+    sv.style.width = r.vote_score + "%"; sa.style.width = r.ai + "%"; ss.style.width = r.instructor + "%";
+    bars.forEach(([f, w]) => f.style.width = w + "%");
+    countUp(num, r.total, 1200, 0);
+  }));
+  history.replaceState(null, "", "?me=" + encodeURIComponent(r.name));
+}
+function closeDetail() { $("modal").classList.remove("open"); }
+$("modal").onclick = (e) => { if (e.target.id === "modal") closeDetail(); };
+addEventListener("keydown", (e) => { if (e.key === "Escape") closeDetail(); });
+
+async function load() {
+  let d;
+  try { d = await fetch("/api/result").then(r => r.json()); } catch { return; }
+  data = d;
+  $("voted").textContent = d.voted; $("total").textContent = d.total;
+  $("progress").style.width = (d.total ? d.voted / d.total * 100 : 0) + "%";
+  $("wait").textContent = d.not_voted.length ? `미투표 ${d.not_voted.length}명: ${d.not_voted.join(", ")}` : "전원 투표 완료 🎉";
+  $("scoreNote").textContent = d.has_scores ? "" : "AI·대진 점수는 아직 반영 전입니다.";
+  render(firstPlay);
+  if (firstPlay && ME && rowData(ME)) setTimeout(() => openDetail(ME), 1600 + d.rows.length * 110);
+  firstPlay = false;
+}
+
+$("replay").onclick = () => { if (data) render(true); };
+$("viewBtn").onclick = () => {
+  const showTable = $("tableView").classList.toggle("hidden") === false;
+  $("chart").classList.toggle("hidden", showTable);
+  $("viewBtn").textContent = showTable ? "그래프로 보기" : "표로 보기";
+};
+load(); setInterval(load, 3000);
+</script>
+</body>
+</html>

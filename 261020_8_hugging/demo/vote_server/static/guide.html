@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>경진대회 지침</title>
+<link rel="stylesheet" href="/static/style.css">
+<style>
+  .doc { max-width: 860px; margin: 0 auto; padding: 16px 16px 60px; }
+  .doc h1 { font-size: 26px; } .doc h2 { border-bottom: 1px solid var(--line); padding-bottom: 6px; margin-top: 32px; }
+  .doc code { background: var(--panel2); padding: 1px 6px; border-radius: 6px; font-size: .92em; }
+  .doc pre { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px; overflow-x: auto; }
+  .doc pre code { background: none; padding: 0; }
+  .doc table { margin: 10px 0; } .doc blockquote { border-left: 3px solid var(--accent); margin: 0; padding: 4px 14px; color: var(--muted); }
+  .tabs { display: flex; gap: 8px; }
+  .tabs a { text-decoration: none; }
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>📘 경진대회 지침</h1>
+  <nav class="tabs"><a class="badge" href="?doc=guide">지침</a><a class="badge" href="?doc=rubric">루브릭</a><a class="badge" href="/">투표</a></nav>
+</header>
+<main class="doc" id="doc">불러오는 중…</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
+<script>
+const name = new URLSearchParams(location.search).get("doc") === "rubric" ? "rubric" : "guide";
+fetch("/docs/" + name).then(r => r.text()).then(md => {
+  const el = document.getElementById("doc");
+  if (window.marked) el.innerHTML = marked.parse(md);
+  else { const pre = document.createElement("pre"); pre.textContent = md; el.replaceChildren(pre); }
+});
+</script>
+</body>
+</html>
