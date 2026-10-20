@@ -53,7 +53,16 @@
 | `261012_python/` | 10/12 | Python 기초 — 자료형·f-string·if·for·zip·함수·try·while·with·class·lambda |
 | `261014_1_data/` | 10/14 | 데이터 수집(로컬·스케줄)·증강·라벨링 |
 | `261014_2_yolo_basic/` | 10/14 | YOLO 기초 — cls·det·pose·seg·파라미터 |
+| `261016_3_yolo_basic/` | 10/16 | YOLO 기초 — HTTP 이미지 추론·putText |
+| `261016_4_yolo_advan/` | 10/16 | YOLO 심화 — track·heatmap·alarm·blur·distance |
+| `261019_5_yolo_advan/` | 10/19 | YOLO 심화 — region·in_out·SAHI·speed·SAM·FastSAM·export·compare·Streamlit |
+| `261019_6_openapi/` | 10/19 | 공공 API(ITS CCTV) + YOLO 연동 |
+| `261020_7_groq_api/` | 10/20 | Groq API — 기본 호출·챗봇·페르소나 챗봇·챗봇 레포 구축 과제 |
+| `261020_8_hugging/` | 10/20 | HuggingFace — DeepSeek 호출·TTI(텍스트→이미지)·서비스 구축 과제 |
+| `261020_8_hugging/demo/` | 10/20 | HF 서비스 경진대회 지침·채점 기준·투표 서버(`vote_server/`) |
+| `yolo_640_vs_slice.html` | 10/19 | 1280 이미지를 640 모델로 추론하기(리사이즈 vs 슬라이스) 설명 페이지 |
 | `captured_images/` | — | 캡처 결과 라벨(txt·xml) |
 | `labeling/roboflow_label/` | — | Roboflow 라벨 데이터셋(라벨·data.yaml) |
 
 > 이미지·영상·모델 가중치(`.pt`)·데이터셋 압축 파일은 용량 문제로 올리지 않습니다.
+> API 키(`.env`·키 텍스트 파일)는 올리지 않습니다. Groq·HuggingFace 실습은 환경변수 `GROQ_API_KEY`·`HF_TOKEN` 을 설정한 뒤 실행하세요.
