@@ -15,3 +15,10 @@ _archive/
 # 무거운 파일
 *.pt
 *.zip
+# 모델 변환 결과·캐시·데이터
+*_openvino_model/
+__pycache__/
+datasets/
+*.npy
+# 개인 연습 파일
+___*

@@ -2,10 +2,13 @@ from ultralytics import YOLO
 import cv2
 
 # 1. 모델 로드
-model = YOLO("261014_2_yolo_basic/yolo11n.pt")
+# model = YOLO("261014_2_yolo_basic/yolo11n.pt")
+model = YOLO("yolo11n.pt")
+# model = YOLO("yolo11l.pt")
 
 # 2. 모델 추론
-results = model("261014_2_yolo_basic/input_video.mp4")
+# results = model("261014_2_yolo_basic/input_video.mp4")
+results = model("261014_2_yolo_basic/input_det.jpg")
 
 # 3. 결과 시각화
 results_image = results[0].plot()
