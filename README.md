@@ -60,7 +60,6 @@
 | `261020_7_groq_api/` | 10/20 | Groq API — 기본 호출·챗봇·페르소나 챗봇·챗봇 레포 구축 과제 |
 | `261020_8_hugging/` | 10/20 | HuggingFace — DeepSeek 호출·TTI(텍스트→이미지)·서비스 구축 과제 |
 | `261020_8_hugging/demo/` | 10/20 | HF 서비스 경진대회 지침·채점 기준·투표 서버(`vote_server/`) |
-| `yolo_640_vs_slice.html` | 10/19 | 1280 이미지를 640 모델로 추론하기(리사이즈 vs 슬라이스) 설명 페이지 |
 | `captured_images/` | — | 캡처 결과 라벨(txt·xml) |
 | `labeling/roboflow_label/` | — | Roboflow 라벨 데이터셋(라벨·data.yaml) |
 
