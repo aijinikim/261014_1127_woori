@@ -60,6 +60,10 @@
 | `261020_7_groq_api/` | 10/20 | Groq API — 기본 호출·챗봇·페르소나 챗봇·챗봇 레포 구축 과제 |
 | `261020_8_hugging/` | 10/20 | HuggingFace — DeepSeek 호출·TTI(텍스트→이미지)·서비스 구축 과제 |
 | `261020_8_hugging/demo/` | 10/20 | HF 서비스 경진대회 지침·채점 기준·투표 서버(`vote_server/`) |
+| `261021_9_transformers/` | 10/21 | Transformers — 문장 유사도·감정 분석·텍스트 생성·요약·번역+요약 (영어·한국어) + 한국어 과제 |
+| `261021_10_ocr/` | 10/21 | OCR — Tesseract 이미지 문자 인식 |
+| `261021_11_streamlit/` | 10/21 | Streamlit — YOLO 탐지 웹앱 기본·심화 |
+| `261021_12_gradio/` | 10/21 | Gradio — 기본 인터페이스·번역기·YOLO 탐지 데모 |
 | `captured_images/` | — | 캡처 결과 라벨(txt·xml) |
 | `labeling/roboflow_label/` | — | Roboflow 라벨 데이터셋(라벨·data.yaml) |
 
