@@ -79,13 +79,45 @@
   .item .note { grid-column: 2 / -1; color: var(--muted); font-size: 12px; margin-top: -4px; }
   .reason { background: var(--panel2); border-radius: 10px; padding: 10px 12px; color: var(--text); font-size: 14px; margin-top: 10px; white-space: pre-wrap; }
   .pen { color: var(--bad); }
+  .plus { color: var(--ok); }
   .hidden { display: none !important; }
+
+  /* 발표 전 — 가짜 경쟁 */
+  .banner { text-align: center; font-size: 18px; font-weight: 700; color: var(--accent); background: #ffcc3312;
+            border: 1px dashed #ffcc3366; border-radius: 10px; padding: 10px; margin-bottom: 12px; animation: pulse 1.4s ease-in-out infinite; }
+  @keyframes pulse { 50% { opacity: .55; } }
+  .chart.suspense .seg { transition-duration: .85s; transition-delay: 0s !important; }
+  .chart.suspense .tot { color: var(--muted); filter: blur(1.2px); }
+  .chart.suspense .rk { color: var(--muted); }
+  .chart.suspense .row { cursor: default; }
+  .row.flip { transition: transform .6s cubic-bezier(.22,.8,.26,1); }
+  .banner.info { animation: none; color: var(--s-vote); background: #3987e512; border-color: #3987e566; }
+
+  /* 반영 버튼 */
+  .stagebar { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin: 0 0 18px; }
+  .stage { font-size: 16px; padding: 10px 18px; border: 1px solid var(--line); }
+  .stage.next { background: var(--accent); color: #1a1400; font-weight: 700; border-color: var(--accent); }
+  .stage.done { background: #173828; color: var(--ok); border-color: #1f5a3c; opacity: 1; }
+  .legend span.off { opacity: .35; }
+  .sheet.pw { max-width: 360px; margin-top: 12vh; }
+  .sheet.pw input { width: 100%; font-size: 18px; margin-top: 12px; }
+  .pwbtns { display: flex; gap: 8px; justify-content: flex-end; margin-top: 8px; }
+  .sheet.notice { max-width: 460px; margin-top: 22vh; text-align: center; animation: shake .6s ease both; }
+  .sheet.notice p { font-size: 24px; font-weight: 800; line-height: 1.45; margin: 6px 0 18px; word-break: keep-all; }
+  .sheet.notice button { font-size: 18px; padding: 10px 28px; }
+  @keyframes shake { 0% { transform: scale(.7); opacity: 0; } 40% { transform: scale(1.05); opacity: 1; }
+                     55% { transform: translateX(-10px); } 70% { transform: translateX(10px); } 85% { transform: translateX(-5px); } 100% { transform: none; } }
+  #noticeBtn { border: 0; cursor: pointer; font-size: 14px; }
 </style>
 </head>
 <body>
 <div class="box">
   <h1>🏆 HuggingFace 경진대회 결과</h1>
-  <p class="rule">총점 100 = 수강생 투표 65 + AI 루브릭 30 + 대진 5 · 이름을 누르면 세부 점수를 볼 수 있어요</p>
+  <p class="rule">총점 100 = 수강생 투표 65 + AI 루브릭 30 + 대진 5 · 발표 후 이름을 누르면 세부 점수를 볼 수 있어요</p>
+  <div class="stagebar">
+    <button id="stage1Btn" class="stage">🗳 수강생 투표 결과 반영</button>
+    <button id="stage2Btn" class="stage">🤖 AI + 대진 점수 반영</button>
+  </div>
 
   <div class="stats">
     <span>투표 <b id="voted">0</b> / <b id="total">0</b>명</span>
@@ -96,12 +128,13 @@
   <div class="toolbar">
     <div class="legend">
       <span><i style="background:var(--s-vote)"></i>투표 (65)</span>
-      <span><i style="background:var(--s-ai)"></i>AI (30)</span>
-      <span><i style="background:var(--s-inst)"></i>대진 (5)</span>
+      <span id="lgAi"><i style="background:var(--s-ai)"></i>AI (30)</span>
+      <span id="lgInst"><i style="background:var(--s-inst)"></i>대진 (5)</span>
     </div>
-    <button id="replay">▶ 다시 재생</button>
-    <button id="viewBtn">표로 보기</button>
+    <button id="replay" class="hidden">▶ 다시 재생</button>
+    <button id="viewBtn" class="hidden">표로 보기</button>
   </div>
+  <div id="banner" class="banner hidden"></div>
 
   <div class="chart" id="chart" role="list"></div>
   <div class="table-wrap hidden" id="tableView">
@@ -111,7 +144,7 @@
     </table>
   </div>
   <p class="wait" id="scoreNote" style="margin-top:12px"></p>
-  <p style="text-align:center;margin-top:18px"><a class="badge" href="/">← 투표 화면</a> <a class="badge" href="/guide?doc=rubric" target="_blank">루브릭 보기</a></p>
+  <p style="text-align:center;margin-top:18px"><a class="badge" href="/">← 투표 화면</a> <a class="badge" href="/guide?doc=rubric" target="_blank">루브릭 보기</a> <button id="noticeBtn" class="badge hidden" title="특정 기기에 메시지 보내기">📣</button></p>
 </div>
 
 <div class="tip" id="tip"></div>
@@ -119,89 +152,285 @@
   <div class="sheet" id="sheet"></div>
 </div>
 
+<!-- 받은 메시지 팝업 -->
+<div class="modal" id="noticeModal" role="alertdialog" aria-modal="true">
+  <div class="sheet notice"><p id="noticeText"></p><button class="primary" id="noticeOk">넵 😅</button></div>
+</div>
+
+<!-- 강사: 메시지 보내기 -->
+<div class="modal" id="sendModal" role="dialog" aria-modal="true">
+  <form class="sheet pw" id="sendForm">
+    <h2>📣 기기에 메시지 보내기</h2>
+    <p class="sum">최근 15초 안에 결과 화면을 연 기기입니다. 그 기기에서 결과 화면을 새로고침하면 바로 뜹니다.</p>
+    <select id="sendIp" style="width:100%;margin-top:10px"></select>
+    <input id="sendIpManual" placeholder="또는 IP 직접 입력 (예: 192.168.0.43)" style="width:100%;margin-top:8px">
+    <textarea id="sendMsg" rows="3" style="margin-top:8px"></textarea>
+    <p class="muted" id="sendInfo" style="min-height:1.4em;margin:6px 0 0;font-size:13px"></p>
+    <div class="pwbtns"><button type="button" id="sendCancel">닫기</button><button class="primary">보내기</button></div>
+  </form>
+</div>
+
+<!-- 강사 비밀번호 -->
+<div class="modal" id="pwModal" role="dialog" aria-modal="true" aria-labelledby="pwTitle">
+  <form class="sheet pw" id="pwForm">
+    <h2 id="pwTitle">🔒 강사 확인</h2>
+    <p class="sum" id="pwDesc"></p>
+    <input type="password" id="pwInput" placeholder="비밀번호" autocomplete="off">
+    <p class="pen" id="pwErr" style="min-height:1.4em;margin:6px 0 0"></p>
+    <div class="pwbtns"><button type="button" id="pwCancel">취소</button><button class="primary">반영</button></div>
+  </form>
+</div>
+
 <script>
 const $ = (id) => document.getElementById(id);
 const MEDAL = ["🥇", "🥈", "🥉"];
 const ME = new URLSearchParams(location.search).get("me");
+const PW_KEY = "hf261020_admin";
 let data = null;
-let rowsEl = new Map();   // name → {el, segs, tot, rk, who}
-let firstPlay = true;
+let rowsEl = new Map();   // name → {el, segs, tot, rk, b, sm}
+let shown = null;         // 화면에 보이는 단계 : 0 발표 전 · 1 투표 결과 · 2 AI + 대진 합산
+let suspenseTimer = null;
+let fake = new Map();     // name → {v, a, s}
+let busy = false;
 
 const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
 const fmt = (n) => (Math.round(n * 10) / 10).toString();
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+const store = {
+  get() { try { return sessionStorage.getItem(PW_KEY) || ""; } catch { return ""; } },
+  set(v) { try { sessionStorage.setItem(PW_KEY, v); } catch {} },
+  del() { try { sessionStorage.removeItem(PW_KEY); } catch {} },
+};
 
-function countUp(node, to, dur, delay) {
-  const from = 0, start = performance.now() + delay;
+function toast(msg) {
+  const t = el("div", "toast", msg); document.body.appendChild(t); setTimeout(() => t.remove(), 2400);
+}
+
+function countUp(node, to, dur, delay, from = 0) {
+  const start = performance.now() + delay;
   const step = (t) => {
     const p = Math.min(1, Math.max(0, (t - start) / dur));
-    const e = 1 - Math.pow(1 - p, 3);
-    node.textContent = fmt(from + (to - from) * e);
+    node.textContent = fmt(from + (to - from) * (1 - Math.pow(1 - p, 3)));
     if (p < 1) requestAnimationFrame(step);
   };
   requestAnimationFrame(step);
 }
 
 function rankLabel(r) { return r.rank <= 3 && r.total > 0 ? MEDAL[r.rank - 1] : r.rank; }
+function rowData(name) { return data && data.rows ? data.rows.find(r => r.name === name) : null; }
 
-function buildRow(r) {
-  const row = el("div", "row"); row.tabIndex = 0; row.setAttribute("role", "listitem");
-  const rk = el("div", "rk");
-  const who = el("div", "who"); const b = el("b"); const sm = el("small"); who.append(b, sm);
+function buildRow(name) {
+  const row = el("div", "row"); row.tabIndex = 0; row.setAttribute("role", "listitem"); row.dataset.name = name;
+  const rk = el("div", "rk", "?");
+  const who = el("div", "who"); const b = el("b", "", name); const sm = el("small"); who.append(b, sm);
   const track = el("div", "track");
   const segs = { v: el("i", "seg v"), a: el("i", "seg a"), s: el("i", "seg s") };
   track.append(segs.v, segs.a, segs.s);
   const tot = el("div", "tot", "0");
   row.append(rk, who, track, tot);
-  row.onclick = () => openDetail(row.dataset.name);
-  row.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openDetail(row.dataset.name); } };
+  row.onclick = () => openDetail(name);
+  row.onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openDetail(name); } };
   const parts = [["v", "투표", (r) => `${fmt(r.vote_score)} / 65 · ${r.votes}표`], ["a", "AI", (r) => `${fmt(r.ai)} / 30`], ["s", "대진", (r) => `${fmt(r.instructor)} / 5`]];
   for (const [k, label, txt] of parts) {
-    segs[k].onmousemove = (e) => showTip(e, `${row.dataset.name} · ${label} ${txt(rowData(row.dataset.name))}`);
+    segs[k].onmousemove = (e) => { const r = shown >= 1 && rowData(name); if (r) showTip(e, `${name} · ${label} ${txt(r)}`); };
     segs[k].onmouseleave = hideTip;
   }
   return { el: row, segs, tot, rk, b, sm };
 }
 
-function rowData(name) { return data.rows.find(r => r.name === name); }
+function ensureRows(names) {
+  const chart = $("chart");
+  for (const n of names) if (!rowsEl.has(n)) { const o = buildRow(n); rowsEl.set(n, o); chart.appendChild(o.el); }
+  for (const n of [...rowsEl.keys()]) if (!names.includes(n)) { rowsEl.get(n).el.remove(); rowsEl.delete(n); }
+}
 
-function applyRow(o, r, animate, delay) {
-  o.el.dataset.name = r.name;
-  o.el.className = "row" + (r.rank === 1 && r.total > 0 ? " top1" : "") + (ME && r.name === ME ? " me" : "");
-  o.rk.textContent = rankLabel(r); o.rk.className = "rk" + (r.rank <= 3 && r.total > 0 ? " medal" : "");
-  o.b.textContent = r.name;
-  o.sm.textContent = r.summary || (r.votes ? `${r.votes}표` : "");
-  const w = { v: r.vote_score, a: r.ai, s: r.instructor };       // 0~100 척도 → %
-  const last = ["s", "a", "v"].find(k => w[k] > 0);
+// 행을 DOM에서 옮기면 진행 중인 막대 애니메이션이 취소된다 → CSS order 로만 순서를 바꾼다
+function placeOrder(names) { names.forEach((n, i) => { rowsEl.get(n).el.style.order = i; }); }
+
+// 순서를 바꾸면서 자리 이동을 부드럽게 (FLIP)
+function reorder(names) {
+  const before = new Map(); rowsEl.forEach(o => before.set(o, o.el.getBoundingClientRect().top));
+  placeOrder(names);
+  rowsEl.forEach(o => {
+    const dy = before.get(o) - o.el.getBoundingClientRect().top;
+    if (!dy) return;
+    o.el.classList.remove("flip");
+    o.el.style.transform = `translateY(${dy}px)`;
+    void o.el.offsetWidth;
+    o.el.classList.add("flip");
+    o.el.style.transform = "";
+  });
+}
+
+function setBars(o, w, last) {
   for (const k of ["v", "a", "s"]) {
     o.segs[k].classList.toggle("end", k === last);
-    o.segs[k].style.transitionDelay = animate ? delay + "ms" : "0ms";
     o.segs[k].style.width = w[k] + "%";
   }
+}
+
+// ── 단계 표시 (버튼·배너·범례) ──────────────────────────
+function updateChrome(stage) {
+  const b1 = $("stage1Btn"), b2 = $("stage2Btn");
+  b1.className = "stage " + (stage >= 1 ? "done" : "next");
+  b2.className = "stage " + (stage >= 2 ? "done" : stage === 1 ? "next" : "");
+  b1.textContent = (stage >= 1 ? "✅ " : "🗳 ") + "수강생 투표 결과 반영";
+  b2.textContent = (stage >= 2 ? "✅ " : "🤖 ") + "AI + 대진 점수 반영";
+  b2.disabled = stage < 1;
+  const banner = $("banner");
+  banner.classList.toggle("hidden", stage === 2);
+  banner.classList.toggle("info", stage === 1);
+  banner.textContent = stage === 0 ? HYPE[0].replace("{1}", "???")
+                                   : "🗳 수강생 투표 결과만 반영된 순위입니다 — AI + 대진 점수는 곧 반영됩니다";
+  $("lgAi").classList.toggle("off", stage < 2); $("lgInst").classList.toggle("off", stage < 2);
+  const real = stage >= 1;
+  $("replay").classList.toggle("hidden", !real); $("viewBtn").classList.toggle("hidden", !real);
+  if (!real) { $("tableView").classList.add("hidden"); $("chart").classList.remove("hidden"); $("viewBtn").textContent = "표로 보기"; }
+}
+
+// ── 0단계 : 가짜로 엎치락뒤치락, 모두 한 번씩 1등 ─────────────
+let leaderQueue = [];
+let lastLeader = null;
+function nextLeader(names) {
+  leaderQueue = leaderQueue.filter(n => names.includes(n));
+  if (!leaderQueue.length) {
+    leaderQueue = names.slice().sort(() => Math.random() - 0.5);
+    if (leaderQueue.length > 1 && leaderQueue[0] === lastLeader) leaderQueue.push(leaderQueue.shift());  // 같은 사람 연속 1등 방지
+  }
+  return (lastLeader = leaderQueue.shift());
+}
+
+const sum = (f) => f.v + f.a + f.s;
+
+// 발표 전 배너 멘트 — 3초마다 바뀐다. {1} 은 지금 👑 자리에 있는 사람
+const HYPE = [
+  "🥁 두구두구두구… 수요일 점심의 주인공은 과연 누구?!",
+  "🔥 1위 자리가 계속 뒤집히고 있습니다! 아무도 안심할 수 없다!",
+  "👑 지금 1위는 {1}?! …과연 끝까지 지킬 수 있을까요?",
+  "😱 이 순위, 믿지 마세요! 진짜 결과는 아직 봉인 중 🔒",
+  "🍱 수요일 점심이 걸린 대결… 심장이 쫄깃해집니다",
+  "⚡ {1}, 방금 1위 탈환! 하지만 이건 페이크일지도…?",
+  "🤖 AI 심사위원도 고민 중… 투표 65 + AI 30 + 대진 5",
+  "🎤 강사님의 손가락이 반영 버튼 위에 있습니다… 3… 2… 1…?",
+];
+let hypeIdx = 0, hypeTick = 0;
+
+function suspenseTick() {
+  const names = [...rowsEl.keys()];
+  if (!names.length) return;
+  for (const n of names) {
+    const p = fake.get(n) || { v: 15 + Math.random() * 30, a: 8 + Math.random() * 16, s: 1 + Math.random() * 4 };
+    const jitter = (x, d, lo, hi) => Math.min(hi, Math.max(lo, x + (Math.random() - 0.5) * d));
+    fake.set(n, { v: jitter(p.v, 26, 5, 52), a: jitter(p.a, 10, 3, 27), s: jitter(p.s, 2, 0.5, 5) });
+  }
+  const leader = nextLeader(names);
+  const others = Math.max(0, ...names.filter(n => n !== leader).map(n => sum(fake.get(n))));
+  const f = fake.get(leader);
+  const target = others + 2 + Math.random() * 5;
+  f.a = Math.min(29, Math.max(f.a, target - 62 - f.s));
+  f.v = Math.min(62, target - f.a - f.s);
+
+  const order = names.slice().sort((x, y) => sum(fake.get(y)) - sum(fake.get(x)));
+  reorder(order);
+  order.forEach((n) => {
+    const o = rowsEl.get(n), fv = fake.get(n);
+    setBars(o, fv, "s");
+    o.tot.textContent = Math.round(sum(fv));
+    o.rk.textContent = n === leader ? "👑" : "?";
+    o.rk.className = "rk" + (n === leader ? " medal" : "");
+    o.el.className = "row" + (ME && n === ME ? " me" : "");
+    o.sm.textContent = "";
+  });
+  if (hypeTick++ % 3 === 0) {  // 약 3.3초마다 멘트 교체
+    $("banner").textContent = HYPE[hypeIdx].replace("{1}", leader);
+    hypeIdx = (hypeIdx + 1) % HYPE.length;
+  }
+}
+
+function startSuspense(d) {
+  shown = 0;
+  closeDetail();
+  $("chart").classList.add("suspense");
+  updateChrome(0);
+  ensureRows(d.names);
+  fake.clear(); leaderQueue = [];
+  clearInterval(suspenseTimer);
+  suspenseTick();
+  suspenseTimer = setInterval(suspenseTick, 1100);
+}
+
+// ── 1단계(또는 바로 2단계) : 진짜 순위 공개 ────────────────────
+async function showReal(d) {
+  clearInterval(suspenseTimer);
+  shown = d.stage;
+  updateChrome(d.stage);
+  ensureRows(d.rows.map(r => r.name));
+  rowsEl.forEach(o => { setBars(o, { v: 0, a: 0, s: 0 }, null); o.tot.textContent = "0"; o.rk.textContent = "·"; o.sm.textContent = ""; });
+  await sleep(500);
+  reorder(d.rows.map(r => r.name));
+  await sleep(800);
+  $("chart").classList.remove("suspense");
+  render(true);
+  await sleep(1600 + d.rows.length * 110);
+}
+
+// ── 1단계 → 2단계 : AI + 대진 점수를 막대에 더한 뒤 최종 순서로 ──────
+async function addScores(d) {
+  const prev = new Map((data.rows || []).map(r => [r.name, r.total]));
+  shown = 2;
+  updateChrome(2);
+  data = d;
+  ensureRows(d.rows.map(r => r.name));
+  // 현재 순서 그대로 주황·초록 막대가 자라고, 총점이 올라간다
+  d.rows.forEach((r) => {
+    const o = rowsEl.get(r.name);
+    for (const k of ["v", "a", "s"]) o.segs[k].style.transitionDelay = "0ms";
+    setBars(o, { v: r.vote_score, a: r.ai, s: r.instructor }, ["s", "a", "v"].find(k => ({ v: r.vote_score, a: r.ai, s: r.instructor })[k] > 0));
+    o.sm.textContent = r.summary || (r.votes ? `${r.votes}표` : "");
+    countUp(o.tot, r.total, 1600, 0, prev.get(r.name) || 0);
+    o.rk.textContent = "·"; o.rk.className = "rk"; o.el.classList.remove("top1");
+  });
+  await sleep(2000);
+  // 최종 순서로 자리 이동 + 순위·메달
+  reorder(d.rows.map(r => r.name));
+  d.rows.forEach(r => applyRow(rowsEl.get(r.name), r, false, 0));
+  renderTable();
+  await sleep(700);
+}
+
+function applyRow(o, r, animate, delay) {
+  o.el.className = "row" + (r.rank === 1 && r.total > 0 ? " top1" : "") + (ME && r.name === ME ? " me" : "");
+  o.rk.textContent = rankLabel(r); o.rk.className = "rk" + (r.rank <= 3 && r.total > 0 ? " medal" : "");
+  o.sm.textContent = r.summary || (r.votes ? `${r.votes}표` : "");
+  const w = { v: r.vote_score, a: r.ai, s: r.instructor };
+  const last = ["s", "a", "v"].find(k => w[k] > 0);
+  for (const k of ["v", "a", "s"]) o.segs[k].style.transitionDelay = animate ? delay + "ms" : "0ms";
+  setBars(o, w, last);
   o.el.setAttribute("aria-label", `${r.rank}위 ${r.name} 총점 ${fmt(r.total)}점`);
   if (animate) countUp(o.tot, r.total, 1600, delay);
   else o.tot.textContent = fmt(r.total);
 }
 
 function render(animate) {
-  const chart = $("chart");
   const rows = data.rows;
-  // 행 생성/재정렬
-  for (const r of rows) if (!rowsEl.has(r.name)) rowsEl.set(r.name, buildRow(r));
-  for (const name of [...rowsEl.keys()]) if (!rows.some(r => r.name === name)) { rowsEl.get(name).el.remove(); rowsEl.delete(name); }
-  rows.forEach(r => chart.appendChild(rowsEl.get(r.name).el));
-
+  ensureRows(rows.map(r => r.name));
+  placeOrder(rows.map(r => r.name));
   if (animate) {
-    rows.forEach(r => { const o = rowsEl.get(r.name); for (const k in o.segs) { o.segs[k].style.transitionDelay = "0ms"; o.segs[k].style.width = "0"; } o.tot.textContent = "0"; });
-    void chart.offsetWidth;  // 0에서 다시 시작
+    rowsEl.forEach(o => { for (const k in o.segs) { o.segs[k].style.transitionDelay = "0ms"; o.segs[k].style.width = "0"; } o.tot.textContent = "0"; });
+    void $("chart").offsetWidth;
   }
   const n = rows.length;
   rows.forEach((r, i) => applyRow(rowsEl.get(r.name), r, animate, animate ? (n - 1 - i) * 110 : 0));  // 아래 순위부터 차오름
+  renderTable();
+}
 
-  // 표 보기
+function renderTable() {
   const tb = $("tbody"); tb.innerHTML = "";
-  for (const r of rows) {
+  const late = data.stage < 2;
+  for (const r of data.rows) {
     const tr = el("tr");
-    [rankLabel(r), r.name, r.votes, fmt(r.vote_score), fmt(r.ai), fmt(r.instructor), fmt(r.total)].forEach((v, i) => tr.append(el("td", i >= 2 ? "num" : "", v)));
+    [rankLabel(r), r.name, r.votes, fmt(r.vote_score), late ? "–" : fmt(r.ai), late ? "–" : fmt(r.instructor), fmt(r.total)]
+      .forEach((v, i) => tr.append(el("td", i >= 2 ? "num" : "", v)));
     tr.onclick = () => openDetail(r.name); tr.style.cursor = "pointer";
     tb.append(tr);
   }
@@ -210,27 +439,30 @@ function render(animate) {
 function showTip(e, text) { const t = $("tip"); t.textContent = text; t.style.display = "block"; t.style.left = Math.min(e.clientX + 14, innerWidth - t.offsetWidth - 8) + "px"; t.style.top = (e.clientY + 14) + "px"; }
 function hideTip() { $("tip").style.display = "none"; }
 
+// ── 상세 ─────────────────────────────────────────────
 function openDetail(name) {
+  if (!(shown >= 1) || busy) return toast("🥁 아직 발표 전입니다!");
   const r = rowData(name); if (!r) return;
+  const late = data.stage < 2;
   hideTip();
   const sh = $("sheet"); sh.innerHTML = "";
   const x = el("button", "x", "✕"); x.onclick = closeDetail; x.setAttribute("aria-label", "닫기");
-  const h = el("h2", "", r.name);
-  sh.append(x, h);
+  sh.append(x, el("h2", "", r.name));
   if (r.summary) sh.append(el("p", "sum", r.summary));
   if (r.repo) { const a = el("a", "", r.repo.replace("https://github.com/", "")); a.href = r.repo; a.target = "_blank"; a.rel = "noopener"; sh.append(a); }
 
   const hero = el("div", "hero");
-  const num = el("span", "n", "0"); hero.append(num, el("span", "of", "/ 100점"), el("span", "rkb", `${rankLabel(r)}${typeof rankLabel(r) === "number" ? "위" : ""} · ${data.rows.length}명 중`));
+  const num = el("span", "n", "0");
+  const rl = rankLabel(r);
+  hero.append(num, el("span", "of", late ? "/ 65점 (투표)" : "/ 100점"), el("span", "rkb", `${rl}${typeof rl === "number" ? "위" : ""} · ${data.rows.length}명 중`));
   sh.append(hero);
-  // 총점 구성 막대
   const stack = el("div", "track"); stack.style.height = "16px";
   const sv = el("i", "seg v"), sa = el("i", "seg a"), ss = el("i", "seg s"); stack.append(sv, sa, ss); sh.append(stack);
 
   const bars = [];
   const section = (color, title, pts, max) => {
     const s = el("div", "sec"); const h3 = el("h3"); const dot = el("i"); dot.style.background = color;
-    h3.append(dot, el("span", "", title), el("span", "pts", `${fmt(pts)} / ${max}`)); s.append(h3); sh.append(s); return s;
+    h3.append(dot, el("span", "", title), el("span", "pts", pts == null ? "반영 전" : `${fmt(pts)} / ${max}`)); s.append(h3); sh.append(s); return s;
   };
   const item = (parent, label, score, max, color, note) => {
     const it = el("div", "item"); const mini = el("div", "mini"); const fill = el("i"); fill.style.background = color; mini.append(fill);
@@ -239,55 +471,147 @@ function openDetail(name) {
     parent.append(it); bars.push([fill, score == null ? 0 : score / max * 100]);
   };
 
-  const sv1 = section("var(--s-vote)", "수강생 투표", r.vote_score, 65);
-  item(sv1, `득표 ${r.votes}표`, r.vote_score, 65, "var(--s-vote)", data.max_votes ? `최다 득표 ${data.max_votes}표 기준 비례 환산 (${r.votes} ÷ ${data.max_votes} × 65)` : "아직 투표 없음");
+  const s1 = section("var(--s-vote)", "수강생 투표", r.vote_score, 65);
+  item(s1, `득표 ${r.votes}표`, r.vote_score, 65, "var(--s-vote)", data.max_votes ? `최다 득표 ${data.max_votes}표 기준 비례 환산 (${r.votes} ÷ ${data.max_votes} × 65)` : "아직 투표 없음");
 
-  const sa1 = section("var(--s-ai)", "AI 루브릭", r.ai, 30);
-  const hasItems = r.items.some(i => i.score != null);
-  if (hasItems) {
-    for (const i of r.items) item(sa1, i.label, i.score, i.max, "var(--s-ai)", i.note || i.desc);
-    if (r.penalty) { const p = el("div", "item"); p.append(el("span", "pen", "감점"), el("span", "muted", "레포명 규칙 위반 등"), el("span", "val pen", fmt(r.penalty))); sa1.append(p); }
+  const s2 = section("var(--s-ai)", "AI 루브릭", late ? null : r.ai, 30);
+  if (late) s2.append(el("p", "wait", "AI 점수는 아직 반영 전입니다."));
+  else if (r.items.some(i => i.score != null)) {
+    for (const i of r.items) item(s2, i.label, i.score, i.max, "var(--s-ai)", i.note || i.desc);
+    if (r.penalty) { const p = el("div", "item"); p.append(el("span", "pen", "감점"), el("span", "muted", "레포명 규칙 위반 등"), el("span", "val pen", fmt(r.penalty))); s2.append(p); }
+    if (r.bonus) { const p = el("div", "item"); p.append(el("span", "plus", "가산점"), el("span", "muted", r.bonus_note || "가산 항목"), el("span", "val plus", "+" + fmt(r.bonus))); s2.append(p); }
   } else {
-    sa1.append(el("p", "wait", r.scored ? `총점만 입력됨 (${fmt(r.ai)}점) — 항목별 점수 없음` : "AI 채점 결과가 아직 반영되지 않았습니다."));
+    s2.append(el("p", "wait", r.scored ? `총점만 입력됨 (${fmt(r.ai)}점) — 항목별 점수 없음` : "AI 채점 대상 레포가 없습니다."));
   }
-  if (r.reason) sa1.append(el("div", "reason", r.reason));
+  if (!late && r.reason) s2.append(el("div", "reason", r.reason));
 
-  const ss1 = section("var(--s-inst)", "대진(강사) 평가", r.instructor, 5);
-  item(ss1, "대진 점수", r.instructor, 5, "var(--s-inst)");
+  const s3 = section("var(--s-inst)", "대진(강사) 평가", late ? null : r.instructor, 5);
+  if (late) s3.append(el("p", "wait", "대진 점수는 아직 반영 전입니다."));
+  else if (r.instructor_items && r.instructor_items.length) {
+    for (const i of r.instructor_items) item(s3, i.label, i.score, i.max, "var(--s-inst)", i.note);
+  }
+  else item(s3, "대진 점수", r.instructor, 5, "var(--s-inst)");
 
   $("modal").classList.add("open");
   requestAnimationFrame(() => requestAnimationFrame(() => {
-    const last = r.instructor > 0 ? ss : r.ai > 0 ? sa : sv; last.classList.add("end");
+    (r.instructor > 0 ? ss : r.ai > 0 ? sa : sv).classList.add("end");
     sv.style.width = r.vote_score + "%"; sa.style.width = r.ai + "%"; ss.style.width = r.instructor + "%";
     bars.forEach(([f, w]) => f.style.width = w + "%");
     countUp(num, r.total, 1200, 0);
   }));
-  history.replaceState(null, "", "?me=" + encodeURIComponent(r.name));
 }
 function closeDetail() { $("modal").classList.remove("open"); }
 $("modal").onclick = (e) => { if (e.target.id === "modal") closeDetail(); };
-addEventListener("keydown", (e) => { if (e.key === "Escape") closeDetail(); });
+
+// ── 강사 비밀번호 → 단계 반영 ─────────────────────────────
+let pendingStage = null;
+async function requestStage(stage) {
+  const saved = store.get();
+  if (saved && await sendStage(stage, saved)) return;
+  pendingStage = stage;
+  $("pwDesc").textContent = stage === 1 ? "수강생 투표 결과를 반영합니다." : "AI 루브릭 점수와 대진 점수를 반영합니다.";
+  $("pwErr").textContent = ""; $("pwInput").value = "";
+  $("pwModal").classList.add("open");
+  setTimeout(() => $("pwInput").focus(), 50);
+}
+async function sendStage(stage, pw) {
+  const res = await fetch("/api/stage", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ stage, password: pw }) });
+  if (res.status === 401) { store.del(); return false; }
+  if (!res.ok) { toast((await res.json().catch(() => ({}))).detail || "반영 실패"); return true; }
+  store.set(pw);
+  load();
+  return true;
+}
+$("pwForm").onsubmit = async (e) => {
+  e.preventDefault();
+  const pw = $("pwInput").value;
+  if (!pw) return;
+  if (await sendStage(pendingStage, pw)) $("pwModal").classList.remove("open");
+  else { $("pwErr").textContent = "비밀번호가 틀렸습니다."; $("pwInput").select(); }
+};
+$("pwCancel").onclick = () => $("pwModal").classList.remove("open");
+$("pwModal").onclick = (e) => { if (e.target.id === "pwModal") $("pwModal").classList.remove("open"); };
+addEventListener("keydown", (e) => { if (e.key === "Escape") { closeDetail(); $("pwModal").classList.remove("open"); $("sendModal").classList.remove("open"); $("noticeModal").classList.remove("open"); } });
+
+$("stage1Btn").onclick = () => { if (!(shown >= 1)) requestStage(1); };
+$("stage2Btn").onclick = () => { if (shown === 1) requestStage(2); };
+
+// ── 주기적 갱신 ──────────────────────────────────────────
+// ── 받은 메시지 팝업 (같은 메시지는 한 번만) ─────────────────
+let noticeSeen = 0;
+function showNotice(n) {
+  if (!n || n.id <= noticeSeen) return;
+  noticeSeen = n.id;
+  $("noticeText").textContent = n.msg;
+  $("noticeModal").classList.add("open");
+}
+$("noticeOk").onclick = () => $("noticeModal").classList.remove("open");
+
+// ── 강사 PC : 📣 메시지 보내기 ────────────────────────────
+async function refreshClients() {
+  const res = await fetch("/api/clients").catch(() => null);
+  if (!res || !res.ok) return null;
+  return res.json();
+}
+$("noticeBtn").onclick = async () => {
+  const list = (await refreshClients()) || [];
+  const sel = $("sendIp"); sel.innerHTML = "";
+  const others = list.filter(c => !c.host);
+  if (!others.length) sel.append(el("option", "", "지금 결과 화면을 연 다른 기기가 없습니다"));
+  for (const c of others) { const o = el("option", "", `${c.ip}  (${c.ago}초 전)`); o.value = c.ip; sel.append(o); }
+  const first = others[0] ? others[0].ip : "";
+  $("sendIpManual").value = "";
+  $("sendMsg").value = `👀 ${first ? first.split(".").pop() + "번" : ""}님, 아직 발표 전인데 뭐 하세요? ㅋㅋ`;
+  $("sendInfo").textContent = "";
+  $("sendModal").classList.add("open");
+};
+$("sendIp").onchange = () => { $("sendMsg").value = `👀 ${$("sendIp").value.split(".").pop()}번님, 아직 발표 전인데 뭐 하세요? ㅋㅋ`; };
+$("sendCancel").onclick = () => $("sendModal").classList.remove("open");
+$("sendForm").onsubmit = async (e) => {
+  e.preventDefault();
+  const ip = $("sendIpManual").value.trim() || $("sendIp").value;
+  if (!ip || !ip.includes(".")) return ($("sendInfo").textContent = "보낼 기기를 고르거나 IP를 입력하세요.");
+  const res = await fetch("/api/notice", { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ip, msg: $("sendMsg").value, password: store.get() }) });
+  const r = await res.json().catch(() => ({}));
+  $("sendInfo").textContent = res.ok ? `✅ ${ip}에 보냈습니다 ${r.online ? "(지금 접속 중 — 새 버전 화면이면 곧 뜹니다)" : "(접속하면 뜹니다)"}` : (r.detail || "전송 실패");
+};
 
 async function load() {
+  if (busy) return;
   let d;
   try { d = await fetch("/api/result").then(r => r.json()); } catch { return; }
-  data = d;
+  showNotice(d.notice);
   $("voted").textContent = d.voted; $("total").textContent = d.total;
   $("progress").style.width = (d.total ? d.voted / d.total * 100 : 0) + "%";
   $("wait").textContent = d.not_voted.length ? `미투표 ${d.not_voted.length}명: ${d.not_voted.join(", ")}` : "전원 투표 완료 🎉";
-  $("scoreNote").textContent = d.has_scores ? "" : "AI·대진 점수는 아직 반영 전입니다.";
-  render(firstPlay);
-  if (firstPlay && ME && rowData(ME)) setTimeout(() => openDetail(ME), 1600 + d.rows.length * 110);
-  firstPlay = false;
+
+  if (d.stage === 0) {
+    data = d;
+    if (shown !== 0) startSuspense(d); else ensureRows(d.names);
+    return;
+  }
+  if (shown === d.stage) { data = d; render(false); updateChrome(d.stage); return; }
+
+  busy = true;
+  closeDetail();
+  try {
+    if (shown === 1 && d.stage === 2) await addScores(d);
+    else { data = d; await showReal(d); }
+  } finally { busy = false; }
+  if (ME && rowData(ME)) openDetail(ME);
 }
 
-$("replay").onclick = () => { if (data) render(true); };
+$("replay").onclick = () => { if (shown >= 1 && !busy) render(true); };
 $("viewBtn").onclick = () => {
   const showTable = $("tableView").classList.toggle("hidden") === false;
   $("chart").classList.toggle("hidden", showTable);
   $("viewBtn").textContent = showTable ? "그래프로 보기" : "표로 보기";
 };
-load(); setInterval(load, 3000);
+
+load();
+setInterval(load, 1500);
+refreshClients().then(list => { if (list) $("noticeBtn").classList.remove("hidden"); });  // 강사 PC에서만 📣 표시
 </script>
 </body>
 </html>

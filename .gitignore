@@ -29,3 +29,7 @@ hugging.txt
 # 수강생 개별 저장소(별도 git)
 261020_7_groq_api/demo/
 yolo_640_vs_slice.html
+261020_8_hugging/demo/261020_bucheon_huggingface_bsj/
+261020_8_hugging/demo/261020_bucheon_huggingface_csc/
+# Gradio 실행 산출물
+.gradio/

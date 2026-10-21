@@ -1,3 +1,5 @@
+.env
 roster.txt
 scores.json
 __pycache__/
+results/

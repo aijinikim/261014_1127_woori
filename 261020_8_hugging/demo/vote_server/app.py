@@ -4,24 +4,36 @@
 규칙 : 이름 입력 → 1인 1표, 본인 투표 불가
 점수 : 투표 65 + AI 30 + 대진 5 = 100
 투표는 메모리에만 저장 → 서버를 끄면 초기화된다.
+결과 공개 단계 (강사 비밀번호 필요) : 0 발표 전 → 1 수강생 투표 결과 반영 → 2 AI + 대진 점수 반영
 """
 import json
 import os
+import secrets
 import socket
 import threading
+import time
 from datetime import datetime
 from pathlib import Path
 
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 BASE = Path(__file__).resolve().parent
+load_dotenv(BASE / ".env")
 ROSTER_PATH = BASE / "roster.txt"
 SCORES_PATH = Path(os.getenv("SCORES_PATH", BASE / "scores.json"))
 PORT = int(os.getenv("PORT", "8000"))
 VOTE_MAX, AI_MAX, INSTRUCTOR_MAX = 65, 30, 5
+BONUS_MAX = 2  # 가산점 상한 (예: 시스템 프롬프트를 영어로 작성 +1). AI 총점은 그래도 30을 넘지 않는다
+
+# 강사 비밀번호 — .env 의 ADMIN_PASSWORD. 비어 있으면 실행할 때마다 임시 비밀번호를 만들어 터미널에 보여준다.
+ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "").strip()
+TEMP_PASSWORD = not ADMIN_PASSWORD
+if TEMP_PASSWORD:
+    ADMIN_PASSWORD = f"{secrets.randbelow(10000):04d}"
 
 # AI 루브릭 (30점) — ../RUBRIC.md 와 동일
 RUBRIC = [
@@ -35,7 +47,9 @@ RUBRIC = [
 
 lock = threading.Lock()
 votes = {}  # {투표자: {"target": 받은 사람, "time": "17:51:03"}}
-state = {"revealed": False}  # 강사가 공개 버튼을 눌러야 진짜 점수가 나간다
+notices = {}  # {기기 IP: {"id": 번호, "msg": 메시지}} — 결과 화면을 연 특정 기기에 팝업
+seen = {}  # {기기 IP: 마지막으로 결과 화면을 불러온 시각}
+state = {"stage": 0}  # 0 발표 전(가짜 경쟁) · 1 투표 결과만 · 2 AI + 대진까지 합산
 
 
 def load_roster():
@@ -63,7 +77,7 @@ def clamp(value, top):
 
 
 def ai_breakdown(entry):
-    """루브릭 항목별 점수 → (AI 총점, 항목 목록, 감점). items가 없으면 ai 숫자를 그대로 쓴다."""
+    """루브릭 항목별 점수 → (AI 총점, 항목 목록, 감점, 가산점). items가 없으면 ai 숫자를 그대로 쓴다."""
     raw = entry.get("items") or {}
     items = []
     for r in RUBRIC:
@@ -72,11 +86,12 @@ def ai_breakdown(entry):
         items.append({**r, "score": None if score is None else round(clamp(score, r["max"]), 1),
                       "note": str(note or "")})
     penalty = -clamp(abs(float(entry.get("penalty", 0) or 0)), AI_MAX)
+    bonus = clamp(entry.get("bonus", 0), BONUS_MAX)
     if raw:
-        total = sum(i["score"] or 0 for i in items) + penalty
+        total = sum(i["score"] or 0 for i in items) + penalty + bonus
     else:
         total = entry.get("ai", 0)
-    return round(clamp(total, AI_MAX), 1), items, penalty
+    return round(clamp(total, AI_MAX), 1), items, penalty, bonus
 
 
 def lan_ip():
@@ -92,7 +107,7 @@ def lan_ip():
 
 def is_host(request):
     """서버를 띄운 PC(강사 PC)에서 온 요청인지"""
-    return request.client.host in ("127.0.0.1", "::1", "localhost", lan_ip())
+    return request.client.host in ("127.0.0.1", "::1", lan_ip())
 
 
 def norm(name):
@@ -165,48 +180,83 @@ def vote(body: VoteIn):
     return {"ok": True, "name": voter, "voted_for": target}
 
 
-@app.get("/api/host")
-def host(request: Request):
-    return {"is_host": is_host(request)}
+class StageIn(BaseModel):
+    stage: int
+    password: str
 
 
-class RevealIn(BaseModel):
-    revealed: bool
-
-
-@app.post("/api/reveal")
-def reveal(body: RevealIn, request: Request):
-    """진짜 순위 공개/가리기 — 강사 PC에서만"""
-    if not is_host(request):
-        raise HTTPException(403, "강사 PC에서만 공개할 수 있습니다.")
-    state["revealed"] = body.revealed
+@app.post("/api/stage")
+def set_stage(body: StageIn):
+    """결과 공개 단계 변경 — 강사 비밀번호 필요"""
+    if not secrets.compare_digest(body.password.encode(), ADMIN_PASSWORD.encode()):
+        time.sleep(1)  # 비밀번호 무작위 대입 지연
+        raise HTTPException(401, "비밀번호가 틀렸습니다.")
+    if body.stage not in (0, 1, 2):
+        raise HTTPException(400, "stage는 0, 1, 2 중 하나입니다.")
+    state["stage"] = body.stage
     return state
 
 
+class NoticeIn(BaseModel):
+    ip: str
+    msg: str
+    password: str = ""
+
+
+@app.post("/api/notice")
+def send_notice(body: NoticeIn, request: Request):
+    """특정 기기(IP)의 결과 화면에 팝업 메시지 — 강사 PC이거나 비밀번호가 맞아야 한다"""
+    if not is_host(request) and not secrets.compare_digest(body.password.encode(), ADMIN_PASSWORD.encode()):
+        time.sleep(1)
+        raise HTTPException(401, "비밀번호가 틀렸습니다.")
+    msg = body.msg.strip()[:200]
+    if not msg:
+        raise HTTPException(400, "메시지를 입력하세요.")
+    prev = notices.get(body.ip.strip(), {}).get("id", 0)
+    notices[body.ip.strip()] = {"id": prev + 1, "msg": msg}
+    return {"ok": True, "ip": body.ip.strip(), "online": time.time() - seen.get(body.ip.strip(), 0) < 15}
+
+
+@app.get("/api/clients")
+def clients(request: Request):
+    """최근 15초 안에 결과 화면을 연 기기 목록 — 강사 PC에서만"""
+    if not is_host(request):
+        raise HTTPException(403, "강사 PC에서만 볼 수 있습니다.")
+    now = time.time()
+    host_ips = {"127.0.0.1", "::1", lan_ip()}
+    return [{"ip": ip, "ago": round(now - t), "host": ip in host_ips}
+            for ip, t in sorted(seen.items(), key=lambda kv: -kv[1]) if now - t < 15]
+
+
 @app.get("/api/result")
-def result():
-    """득표 순위 + AI·대진 합산. 누가 누구에게 투표했는지는 보내지 않는다.
-    공개 전에는 점수 없이 이름·투표 진행률만 보낸다."""
+def result(request: Request):
+    """단계별 결과. 누가 누구에게 투표했는지는 보내지 않는다.
+    0단계 : 이름·투표 진행률만 / 1단계 : 투표 점수만 / 2단계 : AI·대진 합산"""
     roster = load_roster()
-    if not state["revealed"]:
-        return {
-            "revealed": False,
-            "total": len(roster),
-            "voted": len(votes),
-            "not_voted": [n for n in roster if n not in votes],
-            "names": roster,
-        }
-    scores = load_scores()
+    stage = state["stage"]
+    ip = request.client.host
+    seen[ip] = time.time()
+    base = {
+        "notice": notices.get(ip),
+        "stage": stage,
+        "total": len(roster),
+        "voted": len(votes),
+        "not_voted": [n for n in roster if n not in votes],
+    }
+    if stage == 0:
+        return {**base, "names": roster}
+
     counts = {n: 0 for n in roster}
     for v in votes.values():
         counts[v["target"]] = counts.get(v["target"], 0) + 1
     max_votes = max(counts.values(), default=0)
+    scores = load_scores() if stage == 2 else {}  # 2단계 전에는 AI·대진 점수를 읽지도 보내지도 않는다
 
     rows = []
     for name, c in counts.items():
         s = scores.get(name, {})
         vote_score = round(c / max_votes * VOTE_MAX, 1) if max_votes else 0.0
-        ai, items, penalty = ai_breakdown(s)
+        ai, items, penalty, bonus = ai_breakdown(s)
         inst = round(clamp(s.get("instructor", 0), INSTRUCTOR_MAX), 1)
         rows.append({
             "name": name,
@@ -217,6 +267,13 @@ def result():
             "total": round(vote_score + ai + inst, 1),
             "items": items,
             "penalty": penalty,
+            "bonus": bonus,
+            "bonus_note": str(s.get("bonus_note", "")),
+            "instructor_items": [
+                {"label": str(i.get("label", "")), "max": clamp(i.get("max", 1), INSTRUCTOR_MAX),
+                 "score": clamp(i.get("score", 0), INSTRUCTOR_MAX), "note": str(i.get("note", ""))}
+                for i in (s.get("instructor_items") or []) if isinstance(i, dict)
+            ],
             "summary": str(s.get("summary", "")),
             "reason": str(s.get("reason", "")),
             "repo": str(s.get("repo", "")),
@@ -228,10 +285,7 @@ def result():
     for i, r in enumerate(rows):
         r["rank"] = rows[i - 1]["rank"] if i and key(rows[i - 1]) == key(r) else i + 1
     return {
-        "revealed": True,
-        "total": len(roster),
-        "voted": len(votes),
-        "not_voted": [n for n in roster if n not in votes],
+        **base,
         "has_scores": bool(scores),
         "max": {"vote": VOTE_MAX, "ai": AI_MAX, "instructor": INSTRUCTOR_MAX},
         "max_votes": max_votes,
@@ -243,9 +297,11 @@ def result():
 @app.on_event("startup")
 def show_url():
     ip = lan_ip()
-    print(f"
-  수강생 투표 : http://{ip}:{PORT}")
+    print(f"\n  수강생 투표 : http://{ip}:{PORT}")
     print(f"  결과 보기   : http://{ip}:{PORT}/result")
     print("  (투표는 메모리에만 저장 — 서버를 끄면 초기화됩니다)")
-    print("  (진짜 순위 공개 버튼은 이 PC에서 /result 를 열 때만 보입니다)
-")
+    if TEMP_PASSWORD:
+        print(f"  강사 비밀번호 (임시) : {ADMIN_PASSWORD}   ← .env 의 ADMIN_PASSWORD 로 고정할 수 있습니다")
+    else:
+        print("  강사 비밀번호 : .env 의 ADMIN_PASSWORD")
+    print()
