@@ -64,6 +64,9 @@
 | `261021_10_ocr/` | 10/21 | OCR — Tesseract 이미지 문자 인식 |
 | `261021_11_streamlit/` | 10/21 | Streamlit — YOLO 탐지 웹앱 기본·심화 |
 | `261021_12_gradio/` | 10/21 | Gradio — 기본 인터페이스·번역기·YOLO 탐지 데모 |
+| `261023_13_gradio/` | 10/23 | Gradio Blocks — 탭으로 인사·번역·YOLO 탐지 통합 웹 서비스 |
+| `261023_14_claude_web/` | 10/23 | Claude로 만든 웹(HTML·CSS·JS) — 계산기·파이썬 계산기·비만계산기·디자인 시스템(`DESIGN.md`) 적용 계산기 |
+| `261023_15_claude/` | 10/23 | Claude Code 설정 — `CLAUDE.md` 행동 지침·`find-skills` 스킬 |
 | `captured_images/` | — | 캡처 결과 라벨(txt·xml) |
 | `labeling/roboflow_label/` | — | Roboflow 라벨 데이터셋(라벨·data.yaml) |
 
