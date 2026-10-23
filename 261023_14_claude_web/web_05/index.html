@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>계산기</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap">
+  <link rel="stylesheet" href="style.css">
+  <script src="script.js" defer></script>
+</head>
+<body>
+  <main class="calc" aria-label="계산기">
+    <header class="calc__header">
+      <h1 class="calc__title">계산기</h1>
+      <div class="sound">
+        <span class="sound__label" id="sound-label">소리</span>
+        <button class="toggle" type="button" role="switch" aria-checked="true" aria-labelledby="sound-label" data-sound-toggle>
+          <span class="toggle__thumb"></span>
+        </button>
+      </div>
+    </header>
+
+    <section class="display" aria-label="계산 결과">
+      <div class="display__expr" data-expr></div>
+      <button class="display__result" type="button" data-result aria-live="polite" title="눌러서 결과 복사">0</button>
+    </section>
+
+    <div class="keypad">
+      <button class="key key--fn" type="button" data-action="clear" data-key="Escape" aria-label="전체 지우기">AC</button>
+      <button class="key key--fn" type="button" data-action="negate" aria-label="부호 바꾸기">±</button>
+      <button class="key key--fn" type="button" data-action="percent" data-key="%" aria-label="퍼센트">%</button>
+      <button class="key key--op" type="button" data-action="operator" data-value="/" data-key="/" aria-label="나누기">÷</button>
+
+      <button class="key" type="button" data-action="digit" data-value="7" data-key="7">7</button>
+      <button class="key" type="button" data-action="digit" data-value="8" data-key="8">8</button>
+      <button class="key" type="button" data-action="digit" data-value="9" data-key="9">9</button>
+      <button class="key key--op" type="button" data-action="operator" data-value="*" data-key="*" aria-label="곱하기">×</button>
+
+      <button class="key" type="button" data-action="digit" data-value="4" data-key="4">4</button>
+      <button class="key" type="button" data-action="digit" data-value="5" data-key="5">5</button>
+      <button class="key" type="button" data-action="digit" data-value="6" data-key="6">6</button>
+      <button class="key key--op" type="button" data-action="operator" data-value="-" data-key="-" aria-label="빼기">−</button>
+
+      <button class="key" type="button" data-action="digit" data-value="1" data-key="1">1</button>
+      <button class="key" type="button" data-action="digit" data-value="2" data-key="2">2</button>
+      <button class="key" type="button" data-action="digit" data-value="3" data-key="3">3</button>
+      <button class="key key--op" type="button" data-action="operator" data-value="+" data-key="+" aria-label="더하기">+</button>
+
+      <button class="key" type="button" data-action="digit" data-value="0" data-key="0">0</button>
+      <button class="key" type="button" data-action="dot" data-key="." aria-label="소수점">.</button>
+      <button class="key key--fn" type="button" data-action="backspace" data-key="Backspace" aria-label="한 글자 지우기">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M9 5h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9l-6-7z"/>
+          <path d="M12.5 9.5l5 5M17.5 9.5l-5 5"/>
+        </svg>
+      </button>
+      <button class="key key--equals" type="button" data-action="equals" data-key="Enter" aria-label="계산하기">=</button>
+    </div>
+
+    <div class="toast" role="status" data-toast hidden>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+      <span>복사했어요</span>
+    </div>
+  </main>
+
+  <footer class="footnote">
+    <p>키보드로도 입력할 수 있어요. 결과를 누르면 복사돼요.</p>
+    <p class="footnote__credit">디자인 토큰 출처: Gmarket Design System</p>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,142 @@
+:root {
+  --bg: #1e1f26;
+  --panel: #2a2c36;
+  --key: #3a3d4a;
+  --key-hover: #474b5b;
+  --op: #f39c12;
+  --fn: #5c6070;
+  --run: #27ae60;
+  --text: #ecf0f1;
+  --muted: #95a5a6;
+  --error: #ff6b6b;
+  --result: #7ee787;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 24px 16px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Segoe UI", "Malgun Gothic", sans-serif;
+}
+
+.calc {
+  width: 100%;
+  max-width: 480px;
+  background: var(--panel);
+  border-radius: 20px;
+  padding: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+}
+
+.calc-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.calc-header h1 { font-size: 1.3rem; margin: 0; }
+
+.status {
+  font-size: 0.8rem;
+  padding: 4px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.status.loading { background: #8e6b1f; }
+.status.ready { background: #1e7a46; }
+.status.failed { background: #a33; }
+
+/* 실행 기록 */
+.history {
+  height: 260px;
+  overflow-y: auto;
+  background: #15161b;
+  border-radius: 12px;
+  padding: 12px;
+  font-family: Consolas, "D2Coding", monospace;
+  font-size: 0.9rem;
+}
+
+.hint { color: var(--muted); margin: 0; font-family: inherit; }
+
+.entry { margin-bottom: 12px; }
+.entry pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-all;
+  font-family: inherit;
+}
+.entry .input { color: var(--muted); }
+.entry .stdout { color: var(--text); }
+.entry .result { color: var(--result); font-weight: bold; }
+.entry .error { color: var(--error); }
+.entry .error b { display: block; }
+.entry .info { color: var(--op); }
+
+/* 입력창 */
+.code {
+  width: 100%;
+  margin-top: 12px;
+  padding: 10px;
+  border: 2px solid var(--key);
+  border-radius: 12px;
+  background: #15161b;
+  color: var(--text);
+  font-family: Consolas, "D2Coding", monospace;
+  font-size: 1rem;
+  resize: vertical;
+}
+.code:focus { outline: none; border-color: var(--op); }
+
+.warn {
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin: 6px 0 12px;
+}
+
+/* 버튼 패드 */
+.pad {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.pad button {
+  padding: 14px 0;
+  border: none;
+  border-radius: 12px;
+  background: var(--key);
+  color: var(--text);
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.05s;
+}
+.pad button:hover { background: var(--key-hover); }
+.pad button:active { transform: scale(0.96); }
+
+.pad .op { background: var(--op); color: #1e1f26; font-weight: bold; }
+.pad .op:hover { background: #f5b041; }
+.pad .fn { background: var(--fn); }
+.pad .wide { grid-column: span 2; }
+.pad .run {
+  grid-column: span 4;
+  background: var(--run);
+  font-weight: bold;
+}
+.pad .run:hover { background: #2ecc71; }
+.pad .run:disabled { background: #555; cursor: wait; }
+
+@media (max-width: 400px) {
+  .calc { padding: 14px; }
+  .history { height: 200px; }
+  .pad button { padding: 12px 0; font-size: 1rem; }
+}

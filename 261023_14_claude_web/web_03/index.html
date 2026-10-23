@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>파이썬 계산기</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
+</head>
+<body>
+  <main class="calc">
+    <header class="calc-header">
+      <h1>🐍 파이썬 계산기</h1>
+      <span id="status" class="status loading">파이썬 로딩 중…</span>
+    </header>
+
+    <!-- 실행 기록 -->
+    <section id="history" class="history" aria-live="polite">
+      <p class="hint">파이썬 식이나 코드를 입력하고 <kbd>Ctrl</kbd>+<kbd>Enter</kbd> 또는 <b>실행</b>을 누르세요.</p>
+    </section>
+
+    <!-- 입력창 -->
+    <textarea id="code" class="code" rows="3" spellcheck="false" placeholder="예) 2 ** 100&#10;for i in range(3): print(i)"></textarea>
+    <p class="warn">⚠️ <code>while True</code> 같은 무한루프를 실행하면 페이지가 멈춥니다. (새로고침으로 복구)</p>
+
+    <!-- 버튼 패드 -->
+    <section class="pad">
+      <button data-insert="7">7</button>
+      <button data-insert="8">8</button>
+      <button data-insert="9">9</button>
+      <button class="op" data-insert=" / ">/</button>
+
+      <button data-insert="4">4</button>
+      <button data-insert="5">5</button>
+      <button data-insert="6">6</button>
+      <button class="op" data-insert=" * ">*</button>
+
+      <button data-insert="1">1</button>
+      <button data-insert="2">2</button>
+      <button data-insert="3">3</button>
+      <button class="op" data-insert=" - ">-</button>
+
+      <button data-insert="0">0</button>
+      <button data-insert=".">.</button>
+      <button data-insert="(">(</button>
+      <button data-insert=")">)</button>
+
+      <button class="op" data-insert=" ** ">**</button>
+      <button class="op" data-insert=" // ">//</button>
+      <button class="op" data-insert=" % ">%</button>
+      <button class="op" data-insert=" + ">+</button>
+
+      <button id="backspace" class="fn">⌫</button>
+      <button id="clear" class="fn">C</button>
+      <button id="reset" class="fn wide" title="저장된 변수를 모두 지웁니다">초기화</button>
+
+      <button id="run" class="run" disabled>실행</button>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>

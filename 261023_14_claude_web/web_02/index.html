@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>계산기</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="app">
+    <section class="calculator" aria-label="계산기">
+      <header class="top">
+        <h1>계산기</h1>
+        <button class="icon-btn" id="themeToggle" type="button" aria-label="테마 전환">🌙</button>
+      </header>
+
+      <div class="display" aria-live="polite">
+        <div class="expression" id="expression"></div>
+        <div class="result" id="result">0</div>
+      </div>
+
+      <div class="keys">
+        <button class="key fn" type="button" data-action="clear">AC</button>
+        <button class="key fn" type="button" data-action="backspace" aria-label="지우기">⌫</button>
+        <button class="key fn" type="button" data-action="percent">%</button>
+        <button class="key op" type="button" data-op="/" aria-label="나누기">÷</button>
+
+        <button class="key" type="button" data-num="7">7</button>
+        <button class="key" type="button" data-num="8">8</button>
+        <button class="key" type="button" data-num="9">9</button>
+        <button class="key op" type="button" data-op="*" aria-label="곱하기">×</button>
+
+        <button class="key" type="button" data-num="4">4</button>
+        <button class="key" type="button" data-num="5">5</button>
+        <button class="key" type="button" data-num="6">6</button>
+        <button class="key op" type="button" data-op="-" aria-label="빼기">−</button>
+
+        <button class="key" type="button" data-num="1">1</button>
+        <button class="key" type="button" data-num="2">2</button>
+        <button class="key" type="button" data-num="3">3</button>
+        <button class="key op" type="button" data-op="+" aria-label="더하기">+</button>
+
+        <button class="key fn" type="button" data-action="negate" aria-label="부호 전환">±</button>
+        <button class="key" type="button" data-num="0">0</button>
+        <button class="key" type="button" data-action="decimal">.</button>
+        <button class="key equals" type="button" data-action="equals">=</button>
+      </div>
+    </section>
+
+    <aside class="history" aria-label="계산 기록">
+      <div class="history-head">
+        <h2>계산 기록</h2>
+        <button class="text-btn" id="clearHistory" type="button">전체 삭제</button>
+      </div>
+      <ul id="historyList"></ul>
+      <p class="empty" id="historyEmpty">아직 기록이 없습니다.</p>
+    </aside>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>

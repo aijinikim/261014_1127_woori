@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>계산기</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="app">
+    <section class="calculator" aria-label="계산기">
+      <header class="top">
+        <h1>Calculator</h1>
+        <div class="top-actions">
+          <button class="icon-btn" id="historyToggle" title="기록 보기">기록</button>
+          <button class="icon-btn" id="themeToggle" title="테마 전환">🌙</button>
+        </div>
+      </header>
+
+      <div class="display">
+        <div class="expression" id="expression"></div>
+        <div class="result" id="result">0</div>
+      </div>
+
+      <div class="keys">
+        <button class="key fn" data-action="clear">AC</button>
+        <button class="key fn" data-action="backspace">⌫</button>
+        <button class="key fn" data-action="percent">%</button>
+        <button class="key op" data-op="/">÷</button>
+
+        <button class="key" data-num="7">7</button>
+        <button class="key" data-num="8">8</button>
+        <button class="key" data-num="9">9</button>
+        <button class="key op" data-op="*">×</button>
+
+        <button class="key" data-num="4">4</button>
+        <button class="key" data-num="5">5</button>
+        <button class="key" data-num="6">6</button>
+        <button class="key op" data-op="-">−</button>
+
+        <button class="key" data-num="1">1</button>
+        <button class="key" data-num="2">2</button>
+        <button class="key" data-num="3">3</button>
+        <button class="key op" data-op="+">+</button>
+
+        <button class="key fn" data-action="negate">±</button>
+        <button class="key" data-num="0">0</button>
+        <button class="key" data-action="decimal">.</button>
+        <button class="key equals" data-action="equals">=</button>
+      </div>
+    </section>
+
+    <aside class="history" id="history" aria-label="계산 기록">
+      <div class="history-head">
+        <h2>계산 기록</h2>
+        <button class="text-btn" id="clearHistory">전체 삭제</button>
+      </div>
+      <ul id="historyList"></ul>
+      <p class="empty" id="historyEmpty">아직 기록이 없습니다.</p>
+    </aside>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
