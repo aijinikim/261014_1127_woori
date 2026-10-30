@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Claude 챗봇</title>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;600&family=Geist+Mono:wght@400;500&family=Noto+Sans+KR:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app">
+    <header>
+      <p class="eyebrow">Vercel 실습 03 · Claude API</p>
+      <h1>Claude 챗봇</h1>
+    </header>
+
+    <section id="log" class="log" aria-live="polite">
+      <div class="msg assistant">안녕하세요! 무엇이든 물어보세요.</div>
+    </section>
+
+    <form id="form" class="composer">
+      <input id="input" type="text" placeholder="메시지를 입력하세요" autocomplete="off" required>
+      <button id="send" type="submit">전송</button>
+    </form>
+  </div>
+  <script src="script.js"></script>
+</body>
+</html>

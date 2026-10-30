@@ -33,3 +33,5 @@ yolo_640_vs_slice.html
 261020_8_hugging/demo/261020_bucheon_huggingface_csc/
 # Gradio 실행 산출물
 .gradio/
+# 예약 실행 로그
+**/scheduled/logs/

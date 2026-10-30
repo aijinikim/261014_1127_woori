@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vercel × Claude</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500;600&family=Noto+Sans+KR:wght@400;500;600&family=Noto+Serif+KR:wght@400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --paper:   #f5f5f5;
+      --card:    #ffffff;
+      --ink:     #2d3142;
+      --muted:   #4f5d75;
+      --accent:  #bf4520;
+      --line:    rgba(45, 49, 66, 0.12);
+      --code-bg: #2d3142;
+      --code-fg: #f5f5f5;
+      --warn-bg: rgba(191, 69, 32, 0.08);
+      --font-sans:  'Geist', 'Noto Sans KR', 'Apple SD Gothic Neo', 'Malgun Gothic', system-ui, sans-serif;
+      --font-serif: 'Instrument Serif', 'Noto Serif KR', serif;
+      --font-mono:  'Geist Mono', ui-monospace, monospace;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --paper:   #16181f;
+        --card:    #1f222b;
+        --ink:     #e8e9ee;
+        --muted:   #a3abbd;
+        --accent:  #f07a52;
+        --line:    rgba(232, 233, 238, 0.12);
+        --code-bg: #0f1116;
+        --code-fg: #e8e9ee;
+        --warn-bg: rgba(240, 122, 82, 0.10);
+      }
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--paper);
+      color: var(--ink);
+      line-height: 1.7;
+      padding: 3rem 1rem 5rem;
+    }
+    .frame { max-width: 880px; margin: 0 auto; }
+
+    .eyebrow {
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.5rem;
+    }
+    h1 {
+      font-family: var(--font-serif);
+      font-size: clamp(2rem, 4vw + 1rem, 3rem);
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      line-height: 1.1;
+    }
+    h1 em { color: var(--accent); }
+    .lead { margin-top: 1rem; color: var(--muted); font-size: 1.05rem; max-width: 640px; }
+
+    nav.toc {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin: 2rem 0 3rem;
+    }
+    nav.toc a {
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      color: var(--ink);
+      text-decoration: none;
+      padding: 0.35rem 0.75rem;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--card);
+    }
+    nav.toc a:hover { border-color: var(--accent); color: var(--accent); }
+
+    section { margin-top: 3.5rem; scroll-margin-top: 1rem; }
+    h2 {
+      font-family: var(--font-serif);
+      font-size: 1.9rem;
+      font-weight: 400;
+      letter-spacing: -0.01em;
+      margin-bottom: 0.75rem;
+    }
+    h2 .num { font-family: var(--font-mono); font-size: 0.9rem; color: var(--accent); margin-right: 0.5rem; vertical-align: middle; }
+    h3 { font-size: 1rem; font-weight: 600; margin: 1.75rem 0 0.5rem; }
+    p + p { margin-top: 0.75rem; }
+
+    code {
+      font-family: var(--font-mono);
+      font-size: 0.88em;
+      background: var(--card);
+      border: 1px solid var(--line);
+      padding: 0.05rem 0.35rem;
+      border-radius: 4px;
+    }
+    pre {
+      margin: 0.75rem 0;
+      padding: 1rem 1.1rem;
+      background: var(--code-bg);
+      color: var(--code-fg);
+      border-radius: 8px;
+      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      line-height: 1.65;
+    }
+    pre code { background: none; border: none; padding: 0; color: inherit; font-size: inherit; }
+    pre .c { color: #8b93a7; }
+    pre .p { color: #f0a080; }
+
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 0.75rem; margin-top: 1rem; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 1rem 1.1rem;
+    }
+    .card b { display: block; margin-bottom: 0.25rem; }
+    .card span { color: var(--muted); font-size: 0.9rem; }
+
+    .diagram { margin-top: 1.25rem; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 1rem; overflow-x: auto; }
+    .diagram svg { display: block; width: 100%; min-width: 640px; height: auto; }
+    .diagram svg text { font-family: var(--font-sans); fill: var(--ink); }
+    .diagram .box { fill: var(--paper); stroke: var(--line); stroke-width: 1.5; }
+    .diagram .box.hot { stroke: var(--accent); }
+    .diagram .arrow { stroke: var(--muted); stroke-width: 1.5; fill: none; }
+    .diagram .label { font-family: var(--font-mono); font-size: 11px; fill: var(--accent); }
+    .diagram .sub { font-size: 11px; fill: var(--muted); }
+    .diagram marker path { fill: var(--muted); }
+
+    ol.steps { margin: 0.75rem 0 0 1.25rem; }
+    ol.steps li { margin-top: 0.4rem; padding-left: 0.25rem; }
+
+    .prompt {
+      margin: 0.75rem 0;
+      padding: 0.85rem 1rem;
+      border-left: 3px solid var(--accent);
+      background: var(--card);
+      border-radius: 0 8px 8px 0;
+    }
+    .prompt::before {
+      content: 'Claude에게';
+      display: block;
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      letter-spacing: 0.12em;
+      color: var(--accent);
+      margin-bottom: 0.2rem;
+    }
+
+    .warn {
+      margin-top: 1rem;
+      padding: 0.9rem 1rem;
+      background: var(--warn-bg);
+      border: 1px solid var(--accent);
+      border-radius: 8px;
+      font-size: 0.93rem;
+    }
+    .warn b { color: var(--accent); }
+
+    .table-wrap { margin-top: 1rem; border: 1px solid var(--line); border-radius: 8px; background: var(--card); overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.86rem; }
+    th, td { text-align: left; padding: 0.55rem 0.9rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    th { font-family: var(--font-mono); font-size: 0.66rem; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+    td:first-child { white-space: nowrap; }
+
+    footer { margin-top: 4rem; color: var(--muted); font-size: 0.85rem; border-top: 1px solid var(--line); padding-top: 1rem; }
+  </style>
+</head>
+<body>
+<div class="frame">
+
+  <p class="eyebrow">AI 서비스 개발 · 배포 편</p>
+  <h1>Vercel로 배포하고,<br><em>Claude</em>와 함께 쓰기</h1>
+  <p class="lead">내 컴퓨터에서만 돌던 웹페이지를 인터넷 주소 하나로 공유하는 방법. 그리고 그 과정을 Claude에게 맡기는 세 가지 방식을 알아봅니다.</p>
+
+  <nav class="toc">
+    <a href="#what">1. Vercel이란</a>
+    <a href="#flow">2. 배포 흐름</a>
+    <a href="#way1">3. Claude Code로 배포</a>
+    <a href="#way2">4. Vercel MCP</a>
+    <a href="#way3">5. Claude API 앱</a>
+    <a href="#cheat">6. 명령어 정리</a>
+  </nav>
+
+  <!-- 1 -->
+  <section id="what">
+    <h2><span class="num">01</span>Vercel이란?</h2>
+    <p>Vercel은 <b>웹사이트와 서버 함수를 올려 주는 클라우드 배포 플랫폼</b>입니다. 서버를 직접 빌리고 설정할 필요 없이, 폴더를 올리면 몇 초 만에 <code>https://내프로젝트.vercel.app</code> 주소가 생깁니다.</p>
+    <p>Next.js를 만든 회사이지만, 지금까지 만든 HTML·CSS·JS 파일만 있는 사이트도 그대로 올릴 수 있습니다.</p>
+
+    <div class="grid">
+      <div class="card"><b>즉시 배포</b><span>명령 한 줄 또는 GitHub push 한 번으로 배포 완료</span></div>
+      <div class="card"><b>Preview / Production</b><span>배포마다 미리보기 주소가 따로 생기고, 확인 후 본 서비스로 승격</span></div>
+      <div class="card"><b>Functions</b><span><code>api/</code> 폴더의 JS 파일이 자동으로 서버 API가 됨</span></div>
+      <div class="card"><b>환경변수</b><span>API 키를 코드가 아닌 Vercel에 안전하게 보관</span></div>
+      <div class="card"><b>HTTPS · CDN</b><span>보안 인증서와 전 세계 캐시가 자동 적용</span></div>
+      <div class="card"><b>Hobby 플랜 무료</b><span>개인·학습용은 무료. GitHub 계정으로 가입</span></div>
+    </div>
+
+    <h3>Streamlit · Gradio 배포와 무엇이 다른가요?</h3>
+    <p>Streamlit/Gradio는 파이썬 서버가 계속 켜져 있어야 하는 앱입니다. Vercel은 <b>정적 파일 + 요청이 올 때만 잠깐 실행되는 함수(서버리스)</b> 구조라서 HTML/JS 웹앱에 잘 맞습니다.</p>
+  </section>
+
+  <!-- 2 -->
+  <section id="flow">
+    <h2><span class="num">02</span>배포 흐름 한눈에 보기</h2>
+    <div class="diagram">
+      <svg viewBox="0 0 820 200" role="img" aria-label="로컬 폴더에서 vercel 명령으로 빌드, Preview 주소, vercel --prod로 Production 주소까지의 흐름">
+        <defs>
+          <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z"/>
+          </marker>
+        </defs>
+
+        <rect class="box" x="10" y="60" width="150" height="70" rx="8"/>
+        <text x="85" y="92" text-anchor="middle" font-size="14" font-weight="600">내 컴퓨터</text>
+        <text x="85" y="112" text-anchor="middle" class="sub">index.html · api/</text>
+
+        <line class="arrow" x1="160" y1="95" x2="222" y2="95" marker-end="url(#ah)"/>
+        <text x="191" y="84" text-anchor="middle" class="label">vercel</text>
+
+        <rect class="box" x="225" y="60" width="150" height="70" rx="8"/>
+        <text x="300" y="92" text-anchor="middle" font-size="14" font-weight="600">업로드 · 빌드</text>
+        <text x="300" y="112" text-anchor="middle" class="sub">Vercel 클라우드</text>
+
+        <line class="arrow" x1="375" y1="95" x2="437" y2="95" marker-end="url(#ah)"/>
+
+        <rect class="box" x="440" y="60" width="160" height="70" rx="8"/>
+        <text x="520" y="92" text-anchor="middle" font-size="14" font-weight="600">Preview</text>
+        <text x="520" y="112" text-anchor="middle" class="sub">xxx-abc123.vercel.app</text>
+
+        <line class="arrow" x1="600" y1="95" x2="652" y2="95" marker-end="url(#ah)"/>
+        <text x="626" y="84" text-anchor="middle" class="label">--prod</text>
+
+        <rect class="box hot" x="655" y="60" width="155" height="70" rx="8"/>
+        <text x="732" y="92" text-anchor="middle" font-size="14" font-weight="600">Production</text>
+        <text x="732" y="112" text-anchor="middle" class="sub">xxx.vercel.app</text>
+
+        <text x="410" y="175" text-anchor="middle" class="sub">GitHub 저장소를 연결하면: 브랜치 push → Preview, main push → Production 자동 배포</text>
+      </svg>
+    </div>
+
+    <h3>준비물</h3>
+    <ol class="steps">
+      <li><a href="https://vercel.com/signup">vercel.com</a>에서 GitHub 계정으로 가입 (Hobby 무료)</li>
+      <li>Node.js 설치 확인: <code>node -v</code></li>
+      <li>CLI는 설치 없이 <code>npx vercel</code>로 바로 사용 (전역 설치: <code>npm i -g vercel</code>)</li>
+    </ol>
+  </section>
+
+  <!-- 3 -->
+  <section id="way1">
+    <h2><span class="num">03</span>방법 1 — Claude Code로 배포하기</h2>
+    <p>Claude Code는 터미널 명령을 대신 실행할 수 있습니다. 로그인만 우리가 하고, 나머지 <code>vercel</code> 명령은 Claude에게 맡깁니다.</p>
+
+    <h3>① 로그인 (사람이 직접)</h3>
+    <p>브라우저 인증이 필요하므로 Claude Code 입력창에서 <code>!</code>를 붙여 직접 실행합니다.</p>
+    <pre><code>! npx vercel login</code></pre>
+
+    <h3>② Claude에게 요청</h3>
+    <div class="prompt">01_static_deploy 폴더를 Vercel에 미리보기로 배포하고 주소를 알려줘</div>
+    <p>Claude가 실행하는 명령은 대략 다음과 같습니다.</p>
+<pre><code><span class="c"># 폴더로 이동 후 Preview 배포 (처음엔 프로젝트 이름 등을 묻는다 → --yes로 기본값)</span>
+cd 01_static_deploy
+npx vercel --yes
+
+<span class="c"># 출력 예시</span>
+<span class="p">Preview: https://01-static-deploy-abc123-myname.vercel.app</span></code></pre>
+
+    <h3>③ 확인 후 본 서비스로</h3>
+    <div class="prompt">미리보기 잘 나왔어. production으로 올려줘</div>
+<pre><code>npx vercel --prod --yes
+<span class="p">Production: https://01-static-deploy.vercel.app</span></code></pre>
+
+    <h3>이런 요청도 가능</h3>
+    <div class="grid">
+      <div class="card"><b>"배포 목록 보여줘"</b><span><code>npx vercel ls</code></span></div>
+      <div class="card"><b>"배포가 실패했어, 원인 찾아줘"</b><span><code>npx vercel inspect &lt;주소&gt; --logs</code>로 빌드 로그 확인</span></div>
+      <div class="card"><b>"이전 버전으로 되돌려줘"</b><span><code>npx vercel rollback</code></span></div>
+    </div>
+    <p style="margin-top:1rem">처음 배포하면 폴더 안에 <code>.vercel/</code>이 생깁니다. 이 폴더가 "이 폴더 = 그 Vercel 프로젝트" 연결 정보이므로 git에는 올리지 않습니다.</p>
+  </section>
+
+  <!-- 4 -->
+  <section id="way2">
+    <h2><span class="num">04</span>방법 2 — Vercel MCP 연결하기</h2>
+    <p><b>MCP(Model Context Protocol)</b>는 Claude에게 외부 서비스용 "도구"를 꽂아 주는 표준입니다. Vercel 공식 MCP 서버를 연결하면 Claude가 CLI 출력을 해석하는 대신, 내 Vercel 계정의 프로젝트·배포·로그를 도구로 직접 조회합니다.</p>
+
+    <h3>① 등록</h3>
+    <p>터미널(또는 Claude Code에서 <code>!</code> 붙여서):</p>
+    <pre><code>claude mcp add --transport http vercel https://mcp.vercel.com</code></pre>
+    <p>또는 프로젝트 폴더에 <code>.mcp.json</code>을 두면 팀원 모두가 같은 설정을 씁니다 (<code>02_vercel_mcp/.mcp.json</code>).</p>
+<pre><code>{
+  "mcpServers": {
+    "vercel": { "type": "http", "url": "https://mcp.vercel.com" }
+  }
+}</code></pre>
+
+    <h3>② 인증</h3>
+    <p>Claude Code에서 <code>/mcp</code> 입력 → <code>vercel</code> 선택 → 브라우저에서 Vercel 로그인·권한 허용(OAuth). API 토큰을 직접 복사할 필요가 없습니다.</p>
+
+    <h3>③ 사용</h3>
+    <div class="prompt">내 Vercel 프로젝트 목록이랑 각 프로젝트 최근 배포 상태 알려줘</div>
+    <div class="prompt">03-claude-chat 최근 배포 빌드 로그 보고 왜 실패했는지 설명해줘</div>
+    <div class="prompt">Vercel 문서에서 Functions 실행 시간 제한 찾아줘</div>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>구분</th><th>방법 1 · CLI</th><th>방법 2 · MCP</th></tr></thead>
+        <tbody>
+          <tr><td>연결 방식</td><td><code>vercel login</code> 토큰</td><td>OAuth 인증</td></tr>
+          <tr><td>잘하는 일</td><td>배포 실행, 환경변수 추가</td><td>프로젝트·배포·로그 조회, 문서 검색</td></tr>
+          <tr><td>필요한 것</td><td>Node.js</td><td>MCP 지원 클라이언트 (Claude Code, Claude 앱)</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="margin-top:1rem">실무에서는 둘을 같이 씁니다. <b>배포는 CLI, 상태 확인과 문제 해결은 MCP.</b></p>
+  </section>
+
+  <!-- 5 -->
+  <section id="way3">
+    <h2><span class="num">05</span>방법 3 — Claude API 챗봇 배포하기</h2>
+    <p>이번엔 Claude가 <b>배포를 도와주는 쪽</b>이 아니라 <b>배포되는 앱 안에서 동작</b>합니다. 핵심은 <b>API 키를 브라우저에 절대 두지 않는 것</b>입니다.</p>
+
+    <div class="diagram">
+      <svg viewBox="0 0 820 150" role="img" aria-label="브라우저가 /api/chat 함수로 요청하고, 함수가 환경변수의 API 키로 Claude API를 호출해 답변을 스트리밍으로 돌려주는 구조">
+        <defs>
+          <marker id="ah2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z"/>
+          </marker>
+        </defs>
+        <rect class="box" x="10" y="35" width="190" height="75" rx="8"/>
+        <text x="105" y="68" text-anchor="middle" font-size="14" font-weight="600">브라우저</text>
+        <text x="105" y="88" text-anchor="middle" class="sub">index.html · script.js</text>
+
+        <line class="arrow" x1="200" y1="60" x2="312" y2="60" marker-end="url(#ah2)"/>
+        <text x="256" y="50" text-anchor="middle" class="label">POST /api/chat</text>
+        <line class="arrow" x1="312" y1="88" x2="200" y2="88" marker-end="url(#ah2)"/>
+        <text x="256" y="106" text-anchor="middle" class="label">스트리밍</text>
+
+        <rect class="box hot" x="315" y="25" width="200" height="95" rx="8"/>
+        <text x="415" y="58" text-anchor="middle" font-size="14" font-weight="600">Vercel Function</text>
+        <text x="415" y="78" text-anchor="middle" class="sub">api/chat.js</text>
+        <text x="415" y="98" text-anchor="middle" class="sub">ANTHROPIC_API_KEY 🔒</text>
+
+        <line class="arrow" x1="515" y1="60" x2="617" y2="60" marker-end="url(#ah2)"/>
+        <line class="arrow" x1="617" y1="88" x2="515" y2="88" marker-end="url(#ah2)"/>
+
+        <rect class="box" x="620" y="35" width="190" height="75" rx="8"/>
+        <text x="715" y="68" text-anchor="middle" font-size="14" font-weight="600">Claude API</text>
+        <text x="715" y="88" text-anchor="middle" class="sub">claude-opus-5-5</text>
+      </svg>
+    </div>
+
+    <h3>폴더 구조 — <code>03_claude_chat/</code></h3>
+<pre><code>03_claude_chat/
+├─ index.html, style.css, script.js   <span class="c"># 채팅 화면</span>
+├─ api/chat.js                        <span class="c"># 서버 함수 (Vercel이 자동 인식)</span>
+├─ package.json                       <span class="c"># @anthropic-ai/sdk</span>
+├─ .env.example                       <span class="c"># 키 이름 견본</span>
+└─ .gitignore                         <span class="c"># .env, node_modules, .vercel 제외</span></code></pre>
+
+    <h3>핵심 코드 — <code>api/chat.js</code></h3>
+<pre><code>import Anthropic from '@anthropic-ai/sdk';
+const client = new Anthropic();   <span class="c">// 키는 환경변수에서 자동으로 읽음</span>
+
+export async function POST(request) {
+  const { messages } = await request.json();
+  const stream = client.beta.messages.stream({
+    model: 'claude-opus-5-5',
+    max_tokens: 64000,
+    output_config: { effort: 'low' },
+    betas: ['server-side-fallback-2026-07-01'],
+    fallbacks: 'default',
+    system: '당신은 친절한 한국어 도우미입니다.',
+    messages,
+  });
+  <span class="c">// text_delta 조각만 골라 ReadableStream 으로 브라우저에 흘려보냄</span>
+  ...
+}</code></pre>
+    <p><code>export async function POST</code>처럼 HTTP 메서드 이름으로 함수를 내보내면, 프레임워크 없이도 Vercel이 <code>/api/chat</code> 주소로 연결합니다.</p>
+
+    <h3>배포 순서</h3>
+<pre><code>cd 03_claude_chat
+npm install
+
+<span class="c"># 1) 프로젝트 연결 + 첫 Preview 배포</span>
+npx vercel --yes
+
+<span class="c"># 2) API 키를 Vercel 환경변수로 등록 (값은 프롬프트에 붙여넣기)</span>
+npx vercel env add ANTHROPIC_API_KEY production
+npx vercel env add ANTHROPIC_API_KEY preview
+
+<span class="c"># 3) 환경변수 반영을 위해 다시 배포</span>
+npx vercel --prod --yes</code></pre>
+
+    <p>로컬 테스트: <code>.env.example</code>을 <code>.env</code>로 복사해 키를 넣고 <code>npx vercel dev</code> → <code>http://localhost:3000</code>.</p>
+
+    <h3>Claude Code에게 통째로 맡기기</h3>
+    <div class="prompt">03_claude_chat을 Vercel에 배포해줘. ANTHROPIC_API_KEY 환경변수 등록이 필요하면 나한테 키 입력하라고 알려줘</div>
+
+    <div class="warn">
+      <b>보안 주의</b><br>
+      · API 키를 <code>script.js</code>나 HTML에 넣으면 누구나 개발자 도구로 볼 수 있습니다. 반드시 서버 함수 + 환경변수.<br>
+      · <code>.env</code> 파일은 절대 git에 올리지 마세요 (<code>.gitignore</code>에 포함됨).<br>
+      · 배포 주소는 공개됩니다. 주소를 아는 누구나 내 키로 Claude를 호출할 수 있으니, 수업이 끝나면 배포를 내리거나 키를 폐기하세요. Anthropic 콘솔에서 월 사용 한도를 걸어 두면 안전합니다.
+    </div>
+  </section>
+
+  <!-- 6 -->
+  <section id="cheat">
+    <h2><span class="num">06</span>명령어 정리</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>명령</th><th>하는 일</th></tr></thead>
+        <tbody>
+          <tr><td><code>npx vercel login</code></td><td>Vercel 계정 로그인 (브라우저 인증)</td></tr>
+          <tr><td><code>npx vercel</code></td><td>현재 폴더를 Preview로 배포</td></tr>
+          <tr><td><code>npx vercel --prod</code></td><td>Production(본 주소)으로 배포</td></tr>
+          <tr><td><code>npx vercel dev</code></td><td>로컬에서 Vercel 환경 그대로 실행 (Functions 포함)</td></tr>
+          <tr><td><code>npx vercel ls</code></td><td>배포 목록</td></tr>
+          <tr><td><code>npx vercel env add NAME</code></td><td>환경변수 추가</td></tr>
+          <tr><td><code>npx vercel env ls</code></td><td>환경변수 목록 (값은 숨김)</td></tr>
+          <tr><td><code>npx vercel logs &lt;주소&gt;</code></td><td>실행 로그 보기</td></tr>
+          <tr><td><code>npx vercel rollback</code></td><td>이전 Production 배포로 되돌리기</td></tr>
+          <tr><td><code>npx vercel remove &lt;프로젝트&gt;</code></td><td>배포 삭제</td></tr>
+          <tr><td><code>claude mcp add --transport http vercel https://mcp.vercel.com</code></td><td>Claude Code에 Vercel MCP 등록</td></tr>
+          <tr><td><code>/mcp</code></td><td>Claude Code 안에서 MCP 인증·상태 확인</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer>
+    실습 폴더: <code>01_static_deploy</code> · <code>02_vercel_mcp</code> · <code>03_claude_chat</code>
+  </footer>
+</div>
+</body>
+</html>
