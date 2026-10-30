@@ -69,6 +69,7 @@
 | `261023_15_claude/` | 10/23 | Claude Code 설정 — `CLAUDE.md` 행동 지침·`find-skills` 스킬 |
 | `261026_15_claude/` | 10/26 | Claude Code 활용 — Stop 훅(답변 완료 팝업·알림음)·프로젝트 플러그인 설정·증시 요약 예약 실행 스크립트·플러그인 생명주기 문서 |
 | `introduce_vercel/` | 10/27 | Vercel 소개 — 정적 사이트 배포·Vercel MCP 연결·Claude 채팅(Vercel Function 스트리밍) |
+| `plus_study/` | 10/30 | 보충 학습 — YOLO 레이어별 특징 맵 시각화(`visualize=True`, stage 16·19·22) |
 | `captured_images/` | — | 캡처 결과 라벨(txt·xml) |
 | `labeling/roboflow_label/` | — | Roboflow 라벨 데이터셋(라벨·data.yaml) |
 
