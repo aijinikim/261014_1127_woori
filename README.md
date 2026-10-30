@@ -67,6 +67,8 @@
 | `261023_13_gradio/` | 10/23 | Gradio Blocks — 탭으로 인사·번역·YOLO 탐지 통합 웹 서비스 |
 | `261023_14_claude_web/` | 10/23 | Claude로 만든 웹(HTML·CSS·JS) — 계산기·파이썬 계산기·비만계산기·디자인 시스템(`DESIGN.md`) 적용 계산기 |
 | `261023_15_claude/` | 10/23 | Claude Code 설정 — `CLAUDE.md` 행동 지침·`find-skills` 스킬 |
+| `261026_15_claude/` | 10/26 | Claude Code 활용 — Stop 훅(답변 완료 팝업·알림음)·프로젝트 플러그인 설정·증시 요약 예약 실행 스크립트·플러그인 생명주기 문서 |
+| `introduce_vercel/` | 10/27 | Vercel 소개 — 정적 사이트 배포·Vercel MCP 연결·Claude 채팅(Vercel Function 스트리밍) |
 | `captured_images/` | — | 캡처 결과 라벨(txt·xml) |
 | `labeling/roboflow_label/` | — | Roboflow 라벨 데이터셋(라벨·data.yaml) |
 
